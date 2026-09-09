@@ -1,0 +1,46 @@
+{
+  "topic": "Python for loops",
+  "title": "Mastering Python For Loops",
+  "language": "Python",
+  "sections": [
+    {
+      "title": "Why loops matter",
+      "bullets": [
+        "A loop repeats an action without duplicating code.",
+        "For loops are useful when working with a sequence of items.",
+        "The loop body runs once for every item."
+      ]
+    },
+    {
+      "title": "Follow the iteration",
+      "bullets": [
+        "Python takes the first item from the sequence.",
+        "The loop variable stores the current item.",
+        "After the body runs, Python moves to the next item."
+      ]
+    },
+    {
+      "title": "Use range safely",
+      "bullets": [
+        "range(1, 6) produces the numbers 1 through 5.",
+        "The start value is included, but the stop value is excluded.",
+        "Indentation tells Python which statements belong to the loop."
+      ]
+    }
+  ],
+  "code_example": "for number in range(1, 6):\n    square = number * number\n    print(number, square)",
+  "summary": [
+    "A for loop processes one sequence item at a time.",
+    "The loop variable changes on every iteration.",
+    "range includes its start and excludes its stop.",
+    "Indented statements form the loop body."
+  ],
+  "output_video_name": "python_for_loops",
+  "voiceover": {
+    "enabled": true,
+    "language": "en",
+    "tld": "co.in",
+    "speed": 1.0
+  }
+}
+

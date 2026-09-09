@@ -1,0 +1,5 @@
+interface:
+  display_name: "AI Sankalp Video Assets"
+  short_description: "Build narrated Manim-ready lesson packages"
+  brand_color: "#1473E6"
+  default_prompt: "Use $ai-sankalp-video-assets to create a video that explains a programming topic with natural human-style teaching narration."

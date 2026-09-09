@@ -1,0 +1,60 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Setup Python Environment",
+      "type": "shell",
+      "command": "python3 -m venv .venv && .venv/bin/python -m pip install --upgrade pip && .venv/bin/python -m pip install -r requirements.txt",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Render Smoke Test",
+      "type": "shell",
+      "command": ".venv/bin/manim -ql scenes/smoke_test.py SmokeTest",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Render Sample Preview",
+      "type": "shell",
+      "command": ".venv/bin/manim -pql scenes/c_array_beginners.py CArrayBeginners",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Render Sample High Quality",
+      "type": "shell",
+      "command": ".venv/bin/manim -pqh scenes/c_array_beginners.py CArrayBeginners",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "AI Sankalp: Open Generator",
+      "type": "shell",
+      "command": ".venv/bin/python app.py gui",
+      "problemMatcher": []
+    },
+    {
+      "label": "AI Sankalp: Generate Sample",
+      "type": "shell",
+      "command": ".venv/bin/python app.py sample",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "AI Sankalp: Render Sample Offline",
+      "type": "shell",
+      "command": ".venv/bin/python app.py sample --render --no-voiceover --quality low",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "AI Sankalp: Run Tests",
+      "type": "shell",
+      "command": ".venv/bin/python -m unittest discover -s tests -v",
+      "group": "test",
+      "problemMatcher": []
+    }
+  ]
+}
