@@ -25,6 +25,24 @@ VIOLET = "#9A7BFF"
 ELECTRIC = "#4C8DFF"
 
 
+def resolve_package_path(project_root: Path, slug: str) -> Path:
+    """Locate a lesson package JSON for `slug`, preferring generated output.
+
+    `generated/packages/*` is gitignored scratch output, so a clean clone has
+    nothing there. Tracked fixtures under `examples/<slug>/` keep the
+    flagship sample renderable without requiring a prior generation step.
+    """
+    generated_path = project_root / "generated" / "packages" / slug / "lesson_package.json"
+    if generated_path.exists():
+        return generated_path
+    example_path = project_root / "examples" / slug / "lesson_package.json"
+    if example_path.exists():
+        return example_path
+    raise FileNotFoundError(
+        f"No lesson package found for '{slug}'. Checked {generated_path} and {example_path}."
+    )
+
+
 class FuturisticArrayLesson(VoiceoverScene):
     """A cinematic, diagram-first C++ array lesson driven by the rich package."""
 
@@ -33,7 +51,7 @@ class FuturisticArrayLesson(VoiceoverScene):
     def construct(self) -> None:
         self.lesson = load_config(Path(self.LESSON_CONFIG_PATH))
         project_root = Path(__file__).resolve().parents[1]
-        package_path = project_root / "generated" / "packages" / self.lesson.slug / "lesson_package.json"
+        package_path = resolve_package_path(project_root, self.lesson.slug)
         package = json.loads(package_path.read_text(encoding="utf-8"))
         self.script: Dict[str, str] = {scene["id"]: scene["voiceover"] for scene in package["scenes"]}
 
