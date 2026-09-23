@@ -1,0 +1,5 @@
+interface:
+  display_name: "AI Sankalp Issue Architect"
+  short_description: "Gap-review issues and produce implementation-ready design briefs"
+  brand_color: "#1473E6"
+  default_prompt: "Use $ai-sankalp-issue-architect to review GitHub issues for gaps, dependencies, and known limitations and produce a design brief before implementation."

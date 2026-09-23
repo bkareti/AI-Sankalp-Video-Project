@@ -1,0 +1,5 @@
+interface:
+  display_name: "AI Sankalp Code Reviewer"
+  short_description: "Pre-PR diff review with severity-ranked findings"
+  brand_color: "#1473E6"
+  default_prompt: "Use $ai-sankalp-code-reviewer to review the current branch diff against the issue design brief before opening a pull request."

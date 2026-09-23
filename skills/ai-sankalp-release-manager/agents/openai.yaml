@@ -1,0 +1,6 @@
+interface:
+  display_name: "AI Sankalp Release Manager"
+  short_description: "Guide branching strategy, PR hygiene, releases, and changelog work"
+  brand_color: "#1473E6"
+  default_prompt: "Use $ai-sankalp-release-manager to plan branches, PRs, release notes, versioning, and release readiness for the AI Sankalp video project."
+
