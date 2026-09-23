@@ -1,0 +1,5 @@
+interface:
+  display_name: "AI Sankalp Issue Developer"
+  short_description: "Implement issues with architect review, tests, review loop, and PR"
+  brand_color: "#1473E6"
+  default_prompt: "Use $ai-sankalp-issue-developer to implement GitHub issues in the AI Sankalp video project: architect gap review, implementation with unit tests, verification gate, review-and-fix loop, then a pull request."

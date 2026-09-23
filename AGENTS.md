@@ -34,11 +34,23 @@ Use Python with 4-space indentation and descriptive scene class names in `Pascal
 
 ## Testing Guidelines
 
-There is no formal automated test suite yet. Treat rendering as the primary verification step. Run `SmokeTest` after environment changes, then render the edited lesson at low quality with `-ql`. Review the generated files under `media/videos/` for timing, framing, text overflow, logo placement, and voiceover sync.
+Run the offline unit suite with `.venv/bin/python -m unittest discover -s tests -v` for every change. Rendering is the verification step for visual work: run `SmokeTest` after environment changes, then render the edited lesson at low quality. Review the output for timing, framing, text overflow, logo placement, and voiceover sync.
+
+## Implementing Issues
+
+When asked to implement one or more GitHub issues ("implement issues 2, 4 and 7"), use `$ai-sankalp-issue-developer` (`skills/ai-sankalp-issue-developer/SKILL.md`) and follow its pipeline end to end:
+
+1. Architect review with `$ai-sankalp-issue-architect`: resolve gaps, list known limitations, and order issues by dependency.
+2. Branch from the latest `origin/main` as `issue/<n>-<slug>`, `fix/<n>-<slug>`, `docs/<n>-<slug>`, or `qa/<n>-<slug>`.
+3. Implement with unit tests, then run the verification gate.
+4. Review with `$ai-sankalp-code-reviewer` as a separate pass. Fix every Blocker, Major, and Minor finding, and re-review until `PASS`.
+5. Commit, push, and open the PR. Never merge.
+
+`CLAUDE.md` holds the same workflow for Claude Code.
 
 ## Commit & Pull Request Guidelines
 
-No git history is available in this workspace, so use concise imperative commit messages such as `Add array lesson scene` or `Fix logo placement`. Pull requests should describe the lesson or rendering change, list the Manim command used for verification, and include screenshots or a short video sample when visual output changes. Mention any new external assets, fonts, or voiceover dependencies.
+Use Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`) with `Closes #<n>` or `Refs #<n>`. Pull requests follow the template in the issue-developer skill: summary, design decisions, acceptance-criteria coverage, exact verification commands, review rounds, and known limitations. Include frames or a short video sample when visual output changes, and mention any new external assets, fonts, or voiceover dependencies.
 
 ## Security & Configuration Tips
 
