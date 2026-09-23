@@ -1,0 +1,92 @@
+{
+  "topic": "Arrays in C++",
+  "title": "C++ Arrays: Store, Access, and Traverse",
+  "language": "C++",
+  "sections": [
+    {
+      "title": "Why arrays help",
+      "bullets": [
+        "Related values stay together under one array name.",
+        "A numbered position identifies each element.",
+        "One array scales better than many separate variables."
+      ],
+      "narration": "Without an array, we might create mark one, mark two, mark three, and so on. That is already repetitive for five students. For one hundred students, the program becomes difficult to manage. These values belong together, so we need one structure that keeps them together. An array gives the group one name and stores each value in a numbered position."
+    },
+    {
+      "title": "Build the mental model",
+      "bullets": [
+        "A fixed-size array is a row of equal-type elements.",
+        "int marks[5] stores exactly five integers.",
+        "Built-in array elements occupy consecutive storage."
+      ],
+      "narration": "Think of an array as a row of equal-sized boxes. The array called marks has five boxes, and every box stores an integer. A built-in C plus plus array has a fixed size once it is created. Its elements are stored consecutively, so the next element follows the previous one in memory. The boxes are a teaching picture; real memory stores bits and bytes, not drawn rectangles."
+    },
+    {
+      "title": "Read the declaration and indexes",
+      "bullets": [
+        "int is the type, marks is the name, and 5 is the size.",
+        "Five elements use indexes 0 through 4.",
+        "marks[2] selects the third element: 90."
+      ],
+      "narration": "Here is the declaration: int marks, square bracket five, equals five starting values. Int is the element type. Marks is the array name. Five is the number of elements. The important rule is that indexing starts at zero. So five elements use indexes zero, one, two, three, and four. Marks at index two is the third element, which is ninety. The index counts the offset from the beginning, not the human position number."
+    },
+    {
+      "title": "Connect the code to the output",
+      "bullets": [
+        "The declaration creates five integer elements.",
+        "marks[2] reads the third value directly.",
+        "The loop prints marks[i] while i stays below 5.",
+        "The exact output is 90, then all five marks."
+      ],
+      "narration": "The program includes iostream so it can print. Inside main, the declaration creates five integers. The next line reads one element directly: marks at index two. Then the for loop starts i at zero. It keeps running while i is less than five, and i plus plus moves to the next index. On each pass, standard C out prints marks at the current index. The loop condition matches the valid index range, zero through four."
+    },
+    {
+      "title": "Trace the traversal",
+      "bullets": [
+        "Start i at 0 and read marks[i].",
+        "Advance through indexes 0, 1, 2, 3, and 4.",
+        "At i equal to 5, i < 5 is false and the loop stops."
+      ],
+      "narration": "Now watch what changes. At i equals zero, the marker points to the first box, so the program prints seventy. Then i becomes one and the program prints eighty-five. At two, it prints ninety. At three, it prints seventy-five. At four, it prints eighty-eight. After that, i becomes five. The condition i less than five is false, so the loop stops before any invalid access. Only the index and selected element change on each pass."
+    },
+    {
+      "title": "Avoid an out-of-bounds access",
+      "bullets": [
+        "Wrong: i <= 5 eventually attempts marks[5].",
+        "Index 5 is outside a five-element array.",
+        "Out-of-bounds access causes undefined behavior.",
+        "Correct: keep the loop condition i < 5."
+      ],
+      "narration": "A common mistake is writing i less than or equal to five. That loop eventually tries marks at index five. But a five-element array ends at index four. Accessing index five is out of bounds. In C plus plus, that is undefined behavior: the program might print rubbish, appear to work, or crash. Never depend on one observed result. The correction is i less than five, so every access stays inside the array."
+    },
+    {
+      "title": "Quick practice",
+      "bullets": [
+        "scores contains 12, 18, 21, and 15.",
+        "What is scores[3]?",
+        "Which loop bound visits all four valid indexes?",
+        "Answer: scores[3] is 15, and use i < 4."
+      ],
+      "narration": "Quick practice. For scores equal to twelve, eighteen, twenty-one, and fifteen, what does scores at index three contain? And which loop condition visits every valid element exactly once? Pause and decide. The answers are fifteen, and i less than four, because four elements have indexes zero through three."
+    }
+  ],
+  "code_example": "#include <iostream>\n\nint main() {\n    int marks[5] = {70, 85, 90, 75, 88};\n\n    std::cout << \"Third mark: \" << marks[2] << '\\n';\n    std::cout << \"All marks: \";\n\n    for (int i = 0; i < 5; ++i) {\n        std::cout << marks[i] << ' ';\n    }\n\n    std::cout << '\\n';\n    return 0;\n}",
+  "output_video_name": "arrays_in_cpp",
+  "summary": [
+    "A built-in array has a fixed number of same-type elements.",
+    "Indexes run from 0 through size minus 1.",
+    "Use name[index] to access an element.",
+    "Traverse safely with a loop condition below the array size."
+  ],
+  "voiceover": {
+    "enabled": true,
+    "language": "en",
+    "tld": "co.in",
+    "speed": 1.0,
+    "provider": "edge",
+    "voice": "en-IN-NeerjaNeural",
+    "rate": "-4%",
+    "pitch": "+1Hz"
+  },
+  "visual_template": "futuristic_array"
+}

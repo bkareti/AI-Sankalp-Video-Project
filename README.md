@@ -12,6 +12,7 @@ ai_sankalp/                    Models, generator, renderer, UI, Manim runtime
 templates/generated_scene.py.tmpl
 templates/lesson.schema.json   Reusable lesson format
 examples/python_for_loops.json Working sample lesson
+examples/arrays_in_cpp/        Flagship C++ arrays sample (reduced config + rich package)
 assets/ai_sankalp_logo.svg
 generated/
   configs/                     Normalized lesson configs
@@ -86,6 +87,24 @@ python app.py sample --render --quality medium
 ```
 
 The final file is saved as `generated/videos/python_for_loops.mp4`. gTTS audio is cached in `generated/audio/`.
+
+## Render the flagship C++ arrays sample
+
+The polished `futuristic_array` template renders from a rich lesson package
+tracked at `examples/arrays_in_cpp/lesson_package.json`, with a matching
+reduced config at `examples/arrays_in_cpp/config.json`. This works from a
+clean clone with no prior generation step:
+
+```bash
+python app.py generate --config examples/arrays_in_cpp/config.json --render --quality low
+```
+
+The final file is saved as `generated/videos/arrays_in_cpp.mp4`. At render
+time, the scene looks for a matching package under
+`generated/packages/arrays_in_cpp/lesson_package.json` first (useful while
+iterating on package content) and falls back to the tracked
+`examples/arrays_in_cpp/lesson_package.json` fixture when that generated
+copy does not exist, since `generated/packages/*` is not committed to git.
 
 ## Create a reusable lesson config
 
