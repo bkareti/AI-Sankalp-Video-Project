@@ -1,5 +1,4 @@
 import copy
-import json
 import unittest
 from pathlib import Path
 
@@ -124,6 +123,30 @@ class SectionVisualTests(unittest.TestCase):
         sizes = {round(row[1].font_size, 3) for row in parts.bullets}
         self.assertEqual(1, len(sizes))
 
+    def test_table_and_compare_share_one_type_size(self):
+        table = {"type": "table", "columns": ["Expression", "Type", "Value", "Notes"],
+                 "rows": [["sizeof(arr)", "size_t", "20", "bytes"], ["marks[0]", "int", "70", "first"]]}
+        compare = {"type": "compare", "left": {"title": "Wrong", "items": ["i <= 5 reads one past the end", "x"]},
+                   "right": {"title": "Right", "items": ["i < 5", "stays in bounds"]}}
+        headings = {"table": set(table["columns"]), "compare": {"Wrong", "Right"}}
+        for visual in (table, compare):
+            with self.subTest(kind=visual["type"]):
+                parts = manim_scene.build_section_slide(lesson_with(visual).sections[0], 1, 1, FONTS)
+                body = [t for t in parts.visual.get_family()
+                        if isinstance(t, Text) and t.text not in headings[visual["type"]]]
+                sizes = {round(item.font_size, 2) for item in body}
+                self.assertEqual(1, len(sizes), sizes)
+                self.assertGreater(sizes.pop(), 9)
+
+    def test_visual_title_kept_as_written(self):
+        section = lesson_with({"type": "steps", "title": "for n in range(1, 6)", "items": ["a", "b"]}).sections[0]
+        parts = manim_scene.build_section_slide(section, 1, 1, FONTS)
+        self.assertEqual({"forninrange(1,6)"}, {"".join(t.split()) for t in texts(parts.visual_label)})
+
+    def test_invalid_columns_do_not_add_row_errors(self):
+        problems = specs.validate_visual({"type": "table", "columns": "ab", "rows": [["1"]]})
+        self.assertEqual(1, len(problems), problems)
+
     def test_visual_text_comes_only_from_spec(self):
         section = lesson_with(VISUALS["flow"]).sections[0]
         parts = manim_scene.build_section_slide(section, 1, 2, FONTS)
@@ -144,6 +167,11 @@ class SectionVisualTests(unittest.TestCase):
             "compare missing right": {"type": "compare", "left": {"title": "L", "items": ["x"]}},
             "unknown key": {"type": "steps", "items": ["a", "b"], "colour": "red"},
             "long title": {"type": "steps", "items": ["a", "b"], "title": "x" * 60},
+            "unhashable type": {"type": ["flow"]},
+            "table cell too long for 4 columns": {
+                "type": "table", "columns": ["a", "b", "c", "d"], "rows": [["x" * 13, "1", "2", "3"]]},
+            "long compare item": {"type": "compare", "left": {"title": "L", "items": ["x" * 41]},
+                                  "right": {"title": "R", "items": ["y"]}},
         }
         for name, visual in cases.items():
             with self.subTest(case=name):

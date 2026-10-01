@@ -14,6 +14,9 @@ from typing import Any, Callable, Dict, List, Tuple
 TITLE_MAX = 48
 ITEM_MAX = 60
 CELL_MAX = 24
+COMPARE_ITEM_MAX = 40
+# Total characters across one table row; each cell gets an equal share.
+TABLE_TEXT_BUDGET = 48
 
 Problems = List[str]
 
@@ -55,23 +58,35 @@ def _compare(spec: Dict[str, Any], problems: Problems) -> Dict[str, Any]:
             problems.append(f"{side} has unknown key(s): {', '.join(unknown)}")
         result[side] = {
             "title": _text(column.get("title"), f"{side}.title", problems, TITLE_MAX),
-            "items": _text_list(column.get("items"), f"{side}.items", problems, 1, 4),
+            "items": _text_list(column.get("items"), f"{side}.items", problems, 1, 4, COMPARE_ITEM_MAX),
         }
     return result
 
 
-def _table(spec: Dict[str, Any], problems: Problems) -> Dict[str, Any]:
-    columns = _text_list(spec.get("columns"), "columns", problems, 1, 4, CELL_MAX)
-    raw_rows = spec.get("rows")
+def _table(raw: Dict[str, Any], problems: Problems) -> Dict[str, Any]:
+    before = len(problems)
+    columns = _text_list(raw.get("columns"), "columns", problems, 1, 4, CELL_MAX)
+    columns_ok = len(problems) == before
+    # Narrower cells as columns are added keep table text readable at 480p.
+    cell_limit = TABLE_TEXT_BUDGET // max(1, len(columns))
+    for index, column in enumerate(columns):
+        if len(column) > cell_limit:
+            problems.append(f"columns[{index}] must be at most {cell_limit} characters with {len(columns)} columns")
+    raw_rows = raw.get("rows")
     rows: List[List[str]] = []
     if not isinstance(raw_rows, list) or not 1 <= len(raw_rows) <= 6:
         problems.append("rows must be a list of 1 to 6 rows")
         raw_rows = raw_rows if isinstance(raw_rows, list) else []
+    if not columns_ok:
+        return {"columns": columns, "rows": rows}
     for index, row in enumerate(raw_rows):
         if not isinstance(row, list) or len(row) != len(columns):
             problems.append(f"rows[{index}] must have exactly {len(columns)} cell(s), one per column")
             continue
-        rows.append([_text(cell, f"rows[{index}][{cell_index}]", problems, CELL_MAX) for cell_index, cell in enumerate(row)])
+        rows.append([
+            _text(cell, f"rows[{index}][{cell_index}]", problems, min(CELL_MAX, cell_limit))
+            for cell_index, cell in enumerate(row)
+        ])
     return {"columns": columns, "rows": rows}
 
 
@@ -93,7 +108,7 @@ def check_visual(raw: Any) -> Tuple[Dict[str, Any], Problems]:
     if not isinstance(raw, dict):
         return {}, ["must be an object with a type"]
     kind = raw.get("type")
-    if kind not in SPECS:
+    if not isinstance(kind, str) or kind not in SPECS:
         return {}, [f"type must be one of: {', '.join(SPEC_TYPES)} (got {kind!r})"]
     keys, normalize = SPECS[kind]
     unknown = sorted(set(raw) - set(COMMON_KEYS) - set(keys))

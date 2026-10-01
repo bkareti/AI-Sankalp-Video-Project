@@ -9,6 +9,8 @@ The video template includes an intro, lesson title, step-by-step explanation car
 ```text
 app.py                         CLI and desktop-app entry point
 ai_sankalp/                    Models, generator, renderer, UI, Manim runtime
+ai_sankalp/brand.py            Brand kit: palette, fonts, logo, footer, safe areas
+ai_sankalp/primitives/         Reusable visuals (specs, layout helpers, brand frame, diagrams)
 templates/generated_scene.py.tmpl
 templates/lesson.schema.json   Reduced lesson config format
 templates/lesson_package.schema.json  Rich lesson package format
@@ -16,6 +18,8 @@ examples/python_for_loops.json Working sample lesson
 examples/python_for_loops/     Rich package for the Python sample
 examples/arrays_in_cpp/        Flagship C++ arrays sample (reduced config + rich package)
 assets/ai_sankalp_logo.svg
+assets/fonts/                  Optional bundled fonts (see its README)
+docs/                          Brand checklist and other guides
 generated/
   configs/                     Normalized lesson configs
   scenes/                      Small generated Manim entry points

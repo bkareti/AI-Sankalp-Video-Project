@@ -18,9 +18,6 @@ from .primitives.frame import add_brand_frame
 from .primitives.layout import code_block, fit, header, panel, text, wrap_text
 from .speech import build_speech_service
 
-# Re-exported for backward compatibility; brand.py is the source of truth.
-from .brand import ACCENT, BG, CORAL, CYAN, GOLD, MINT, MUTED, PANEL, PANEL_2, SOFT_WHITE  # noqa: F401
-
 # Layout constants (Manim units). Content stays above brand.CONTENT_SAFE_BOTTOM_Y.
 SLIDE_CENTER_Y = -0.3
 SLIDE_HEIGHT = 4.6
@@ -28,7 +25,7 @@ FULL_PANEL_WIDTH = 11.6
 FULL_WRAP = 62
 FULL_FONT = 26
 SPLIT_PANEL_WIDTH = 6.25
-SPLIT_WRAP = 43
+SPLIT_WRAP = 46
 SPLIT_FONT = 23
 VISUAL_PANEL_WIDTH = 5.4
 CODE_MAX_WIDTH = 11.5
@@ -93,7 +90,8 @@ def build_section_slide(section: LessonSection, number: int, total: int, fonts: 
     visual_label = None
     top_reserved = 0.3
     if title:
-        visual_label = VGroup(fit(text(title.upper(), fonts, 14, color=brand.MUTED, bold=True), VISUAL_PANEL_WIDTH - 0.5))
+        # Shown as written: titles often hold code (range(1, 6), marks[i]).
+        visual_label = VGroup(fit(text(title, fonts, 15, color=brand.MUTED, bold=True), VISUAL_PANEL_WIDTH - 0.5))
         visual_label.move_to(visual_panel.get_top() + DOWN * 0.3)
         top_reserved = 0.6
     visual = build_section_visual(section.visual, fonts, VISUAL_PANEL_WIDTH - 0.6, SLIDE_HEIGHT - top_reserved - 0.3)

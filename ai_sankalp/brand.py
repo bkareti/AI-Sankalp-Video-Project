@@ -81,7 +81,8 @@ def resolve_font(candidates: Sequence[str], available: Iterable[str]) -> str:
     return candidates[-1]
 
 
-def bundled_font_files(font_dir: Path = FONT_DIR) -> List[Path]:
+def bundled_font_files(font_dir: Optional[Path] = None) -> List[Path]:
+    font_dir = Path(font_dir or FONT_DIR)
     if not font_dir.is_dir():
         return []
     return sorted(path for path in font_dir.iterdir() if path.suffix.lower() in FONT_SUFFIXES)
@@ -121,7 +122,7 @@ def brand_fonts() -> BrandFonts:
     files = bundled_font_files()
     for path in files:
         manimpango.register_font(str(path))
-    sans_chain, mono_chain = font_chains(files)
+    sans_chain, mono_chain = font_chains(files, _family_name)
     available = manimpango.list_fonts()
     return BrandFonts(sans=resolve_font(sans_chain, available), mono=resolve_font(mono_chain, available))
 

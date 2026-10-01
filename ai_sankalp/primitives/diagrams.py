@@ -52,14 +52,17 @@ def steps_list(spec: Dict[str, Any], fonts: BrandFonts, width: float, height: fl
 
 def compare_columns(spec: Dict[str, Any], fonts: BrandFonts, width: float, height: float) -> VGroup:
     column_width = (width - 0.3) / 2
+    item_texts = {
+        side: [text(wrap_text(item, 20), fonts, 19, line_spacing=0.85) for item in spec[side]["items"]]
+        for side in ("left", "right")
+    }
+    # One shared scale so every item in both columns has the same type size.
+    scale = min([1.0] + [(column_width - 0.3) / item.width for items in item_texts.values() for item in items])
     columns = VGroup()
     for side, color in (("left", brand.CORAL), ("right", brand.MINT)):
         data = spec[side]
         heading = fit(text(data["title"], fonts, 22, color=color, bold=True), column_width - 0.3)
-        items = VGroup(*[
-            fit(text(wrap_text(item, 20), fonts, 19, line_spacing=0.85), column_width - 0.3)
-            for item in data["items"]
-        ]).arrange(DOWN, buff=0.22, aligned_edge=LEFT)
+        items = VGroup(*[item.scale(scale) for item in item_texts[side]]).arrange(DOWN, buff=0.22, aligned_edge=LEFT)
         body = VGroup(heading, items).arrange(DOWN, buff=0.3, aligned_edge=LEFT)
         box = RoundedRectangle(
             width=column_width, height=min(height, body.height + 0.6), corner_radius=0.14,
@@ -76,22 +79,31 @@ def data_table(spec: Dict[str, Any], fonts: BrandFonts, width: float, height: fl
     columns, rows = spec["columns"], spec["rows"]
     cell_width = width / len(columns)
     cell_height = min(0.62, height / (len(rows) + 1))
+    labels = [
+        [
+            text(value, fonts, 20, color=brand.CYAN if row_index == 0 else brand.SOFT_WHITE,
+                 bold=row_index == 0, mono=row_index != 0)
+            for value in row
+        ]
+        for row_index, row in enumerate([columns] + rows)
+    ]
+    # One shared scale keeps every cell the same type size.
+    scale = min([1.0] + [
+        min((cell_width - 0.28) / label.width, (cell_height - 0.2) / label.height)
+        for row in labels for label in row
+    ])
     grid = VGroup()
-    for row_index, row in enumerate([columns] + rows):
+    for row_index, row in enumerate(labels):
         is_header = row_index == 0
         cells = VGroup()
-        for column_index, value in enumerate(row):
+        for label in row:
             box = RoundedRectangle(
                 width=cell_width - 0.08, height=cell_height - 0.08, corner_radius=0.06,
                 stroke_color=brand.CYAN if is_header else brand.ACCENT, stroke_width=1.4,
                 stroke_opacity=0.9 if is_header else 0.45,
                 fill_color=brand.PANEL_2 if is_header else brand.PANEL, fill_opacity=1,
             )
-            label = text(
-                value, fonts, 20, color=brand.CYAN if is_header else brand.SOFT_WHITE,
-                bold=is_header, mono=not is_header,
-            )
-            fit(label, box.width - 0.2, box.height - 0.12)
+            label.scale(scale)
             cells.add(VGroup(box, label.move_to(box)))
         cells.arrange(RIGHT, buff=0.08)
         grid.add(cells)

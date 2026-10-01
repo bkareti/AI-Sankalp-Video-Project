@@ -46,6 +46,31 @@ class FontResolutionTests(unittest.TestCase):
             self.assertEqual("JetBrains Mono", mono[0])
             self.assertEqual("Inter", brand.resolve_font(sans, MAC_FONTS + ["Inter"]))
 
+    def test_brand_fonts_registers_bundled_files_before_listing(self):
+        from unittest import mock
+
+        calls = []
+        fake_pango = mock.Mock()
+        fake_pango.register_font.side_effect = lambda path: calls.append(("register", Path(path).name))
+        fake_pango.list_fonts.side_effect = lambda: calls.append(("list",)) or MAC_FONTS + ["Inter", "JetBrains Mono"]
+        families = {"Inter-Regular.ttf": "Inter", "JetBrainsMono-Regular.ttf": "JetBrains Mono"}
+        with tempfile.TemporaryDirectory() as directory:
+            font_dir = Path(directory)
+            for name in families:
+                (font_dir / name).write_bytes(b"")
+            brand.brand_fonts.cache_clear()
+            try:
+                with mock.patch.object(brand, "FONT_DIR", font_dir), \
+                        mock.patch.dict("sys.modules", {"manimpango": fake_pango}), \
+                        mock.patch.object(brand, "_family_name", side_effect=lambda path: families[path.name]):
+                    fonts = brand.brand_fonts()
+            finally:
+                brand.brand_fonts.cache_clear()
+        self.assertEqual(
+            [("register", "Inter-Regular.ttf"), ("register", "JetBrainsMono-Regular.ttf"), ("list",)], calls,
+        )
+        self.assertEqual(brand.BrandFonts(sans="Inter", mono="JetBrains Mono"), fonts)
+
     def test_missing_font_dir_is_empty(self):
         self.assertEqual([], brand.bundled_font_files(Path("/nonexistent/fonts")))
 
