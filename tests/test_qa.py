@@ -99,6 +99,15 @@ class FinalReadyTests(unittest.TestCase):
             details = next(check for check in report.checks if check.id == "package_schema").details
             self.assertTrue(any("review_status.sme_approved_on" in detail for detail in details))
 
+    def test_approval_with_bad_date_is_not_shown_as_approved(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = QAFixture(directory)
+            fixture.package["review_status"]["sme_approved_on"] = "yesterday"
+            fixture.save_package()
+            check = next(check for check in fixture.run().checks if check.id == "sme_approval")
+            self.assertEqual(FAIL, check.status)
+            self.assertNotIn("Approved by", check.message)
+
 
 class FailureTests(unittest.TestCase):
     def test_missing_package_fails(self):
@@ -116,13 +125,90 @@ class FailureTests(unittest.TestCase):
             self.assertEqual(FAIL, statuses(report)["captions"])
             self.assertFalse(report.final_ready)
 
-    def test_estimated_or_fast_captions_need_review(self):
+    def test_estimated_captions_need_review_even_after_a_render(self):
+        # `app.py captions` overwriting render captions must not pass as render-timed.
         with tempfile.TemporaryDirectory() as directory:
             fixture = QAFixture(directory)
-            HistoryLog(fixture.root / "generated" / "history.jsonl").add(
-                "render_succeeded", video=str(fixture.video), voiceover=True, captions={"source": "estimated"},
-            )
-            self.assertEqual(NEEDS_REVIEW, statuses(fixture.run())["captions"])
+            export_captions(estimate_cues_from_package(fixture.package), fixture.videos, SLUG, "estimated")
+            check = next(check for check in fixture.run().checks if check.id == "captions")
+            self.assertEqual(NEEDS_REVIEW, check.status)
+            self.assertIn("estimated from narration text", check.details[0])
+
+    def test_invalid_captions_fail(self):
+        cases = {
+            "garbage srt": lambda f: (f.videos / f"{SLUG}.srt").write_text("not captions\n", encoding="utf-8"),
+            "empty srt": lambda f: (f.videos / f"{SLUG}.srt").write_text("", encoding="utf-8"),
+            "vtt disagrees": lambda f: (f.videos / f"{SLUG}.vtt").write_text(
+                "WEBVTT\n\n00:00:00.000 --> 00:00:01.000\nOnly one\n", encoding="utf-8"),
+        }
+        for name, damage in cases.items():
+            with self.subTest(case=name), tempfile.TemporaryDirectory() as directory:
+                fixture = QAFixture(directory)
+                damage(fixture)
+                self.assertEqual(FAIL, statuses(fixture.run())["captions"])
+
+    def test_no_history_needs_review(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = QAFixture(directory)
+            (fixture.root / "generated" / "history.jsonl").unlink()
+            self.assertEqual(NEEDS_REVIEW, statuses(fixture.run())["history"])
+
+    def test_malformed_packages_still_produce_a_report(self):
+        cases = {
+            "assets list of strings": lambda p: p.update(assets=["x"]),
+            "review_status not an object": lambda p: p.update(review_status="yes"),
+            "checklist not an object": lambda p: p.update(review_status={"sme_approved": False, "checklist": "pending"}),
+            "duration not a number": lambda p: p.update(duration_minutes="five"),
+            "generator_compatibility not an object": lambda p: p.update(generator_compatibility="x"),
+        }
+        for name, mutate in cases.items():
+            with self.subTest(case=name), tempfile.TemporaryDirectory() as directory:
+                fixture = QAFixture(directory)
+                mutate(fixture.package)
+                fixture.save_package()
+                report = fixture.run()
+                self.assertEqual(11, len(report.checks))
+                self.assertEqual(FAIL, statuses(report)["package_schema"])
+                self.assertFalse(report.final_ready)
+                for check in report.checks:
+                    self.assertNotIn("could not run", check.message, check.id)
+
+    def test_crashing_check_becomes_a_fail_row(self):
+        from ai_sankalp import qa
+
+        def explode(ctx):
+            raise RuntimeError("boom")
+
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = QAFixture(directory)
+            with mock.patch.object(qa, "CHECKS", (explode,)):
+                report = fixture.run()
+            self.assertEqual("explode", report.checks[0].id)
+            self.assertEqual(FAIL, report.checks[0].status)
+            self.assertIn("RuntimeError: boom", report.checks[0].message)
+
+    def test_silent_preview_config_is_named_in_reduced_config(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = QAFixture(directory)
+            config = fixture.root / "generated" / "configs" / f"{SLUG}.json"
+            data = json.loads(config.read_text(encoding="utf-8"))
+            data["voiceover"]["enabled"] = False
+            config.write_text(json.dumps(data), encoding="utf-8")
+            check = next(check for check in fixture.run().checks if check.id == "reduced_config")
+            self.assertEqual(NEEDS_REVIEW, check.status)
+            self.assertIn("--no-voiceover", check.message)
+
+    def test_generated_copy_shadowing_examples_needs_review(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = QAFixture(directory)
+            stale = dict(fixture.package)
+            stale.pop("review_status")
+            generated = fixture.root / "generated" / "packages" / SLUG / "lesson_package.json"
+            generated.parent.mkdir(parents=True)
+            generated.write_text(json.dumps(stale), encoding="utf-8")
+            check = fixture.run().checks[0]
+            self.assertEqual(NEEDS_REVIEW, check.status)
+            self.assertIn("examples/arrays_in_cpp/lesson_package.json also exists", check.message)
 
     def test_missing_mp4_fails(self):
         with tempfile.TemporaryDirectory() as directory:

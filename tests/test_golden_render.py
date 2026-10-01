@@ -42,6 +42,15 @@ class HashTests(unittest.TestCase):
     def test_frame_times_are_evenly_spaced(self):
         self.assertEqual([5.0, 15.0, 25.0, 35.0, 45.0, 55.0, 65.0, 75.0, 85.0, 95.0], golden.frame_times(100.0))
 
+    def test_sandbox_copies_code_and_package_only(self):
+        with tempfile.TemporaryDirectory() as directory:
+            sandbox = golden.make_sandbox(SLUG, Path(directory) / "box")
+            self.assertTrue((sandbox / "app.py").exists())
+            self.assertTrue((sandbox / "ai_sankalp" / "qa" / "golden.py").exists())
+            self.assertTrue((sandbox / "examples" / SLUG / "lesson_package.json").exists())
+            self.assertFalse((sandbox / "generated").exists())
+            self.assertFalse(list(sandbox.rglob("__pycache__")))
+
     def test_compare_frames(self):
         snapshot = {"duration_seconds": 100.0, "max_hamming": 10, "duration_tolerance": 0.1,
                     "frames": [{"t": 5.0, "dhash": "0" * 16}]}

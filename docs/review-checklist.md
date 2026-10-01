@@ -49,7 +49,17 @@ To watch with captions burned in, add `--burn-captions` to the render and open
 
 ## 3. Record the result in the lesson package
 
-Edit `review_status` in `examples/<slug>/lesson_package.json`:
+Record approval in **the package file QA checks**. QA names that file in its first
+row ("Lesson package exists") and in `inputs.package` of `qa_report.json`.
+
+- `qa --slug <slug>` prefers `generated/packages/<slug>/lesson_package.json`,
+  where the video-assets skill saves new packages. It uses
+  `examples/<slug>/lesson_package.json` only when no generated copy exists.
+- If both exist with different `review_status`, QA marks the package row
+  "needs review" so an approval is never lost in the wrong file.
+- To check a specific file, use `qa --package <path>`.
+
+Edit `review_status` in that file:
 
 ```json
 "review_status": {
@@ -66,4 +76,4 @@ Edit `review_status` in `examples/<slug>/lesson_package.json`:
 - An approval must name the reviewer and the date (`YYYY-MM-DD`).
 - If the lesson content changes after approval, set `sme_approved` back to `false` and review again.
 
-Then run `python app.py qa --slug <slug>` once more. It must exit `0`.
+Then run QA once more, the same way as before (`--slug <slug>` or `--package <path>`). It must exit `0`.

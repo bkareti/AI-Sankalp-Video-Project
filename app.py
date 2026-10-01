@@ -55,6 +55,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     captions.add_argument("--config", type=Path, required=True, help="Reduced lesson config or rich lesson_package.json")
     captions.add_argument("--output-dir", type=Path, help="Caption folder (default: generated/videos)")
+    captions.add_argument(
+        "--force", action="store_true", help="Replace captions that a render timed exactly",
+    )
 
     qa = subparsers.add_parser(
         "qa", help="Check whether a lesson is final-ready (exit 0 = ready, 2 = needs review, 1 = fail)",
@@ -128,21 +131,27 @@ def generate_and_maybe_render(
             print(f"Captioned video: {result.captioned_video_path}")
     else:
         print("Scene generated. Add --render to create the MP4.")
+        if burn_captions:
+            print("Note: --burn-captions only applies with --render; no captioned video was made.")
     return 0
 
 
-def write_captions(config: Path, output_dir: Path | None) -> int:
-    from ai_sankalp.captions import SOURCE_ESTIMATED, export_captions
+def write_captions(config: Path, output_dir: Path | None, force: bool = False) -> int:
+    from ai_sankalp.captions import SOURCE_ESTIMATED, SOURCE_RENDER, export_captions, read_caption_source
     from ai_sankalp.generator import check_template_prerequisites
     from ai_sankalp.renderer import narration_cues
 
     loaded = load_lesson_input(config)
     package_path = check_template_prerequisites(loaded.lesson, PROJECT_ROOT, loaded.package_path)
-    files = export_captions(
-        narration_cues(loaded.lesson, package_path),
-        Path(output_dir or PROJECT_ROOT / "generated" / "videos").expanduser().resolve(),
-        loaded.lesson.slug, SOURCE_ESTIMATED,
-    )
+    folder = Path(output_dir or PROJECT_ROOT / "generated" / "videos").expanduser().resolve()
+    if read_caption_source(folder, loaded.lesson.slug) == SOURCE_RENDER and not force:
+        print(
+            f"Error: {folder / loaded.lesson.slug}.srt was timed by a render; estimated captions would replace it. "
+            "Use --output-dir for a separate copy, or --force to replace it.",
+            file=sys.stderr,
+        )
+        return 1
+    files = export_captions(narration_cues(loaded.lesson, package_path), folder, loaded.lesson.slug, SOURCE_ESTIMATED)
     print(f"Captions: {files.srt}")
     print(f"          {files.vtt}")
     print(f"{files.cue_count} cues, timed from narration text (a render times them exactly).")
@@ -181,7 +190,7 @@ def main(argv=None) -> int:
                 lesson.voiceover.enabled = False
             return generate_and_maybe_render(lesson, args.render, args.quality, burn_captions=args.burn_captions)
         if args.command == "captions":
-            return write_captions(args.config, args.output_dir)
+            return write_captions(args.config, args.output_dir, args.force)
         if args.command == "qa":
             return run_quality_check(args.slug, args.package, args.video_dir, args.report)
         if args.command == "interactive":

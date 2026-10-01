@@ -18,6 +18,33 @@ from .report import FAIL, NEEDS_REVIEW, PASS, CheckResult, QAReport, write_repor
 EXIT_CODES = {PASS: 0, FAIL: 1, NEEDS_REVIEW: 2}
 
 
+def _generated_package(root: Path, slug: str) -> Path:
+    return (root / "generated" / "packages" / slug / "lesson_package.json").resolve()
+
+
+def _shadowed_example(root: Path, slug: str, package: dict) -> Optional[Path]:
+    """The examples/ package hidden by a generated copy, when their review_status differ."""
+    example = root / "examples" / slug / "lesson_package.json"
+    if not example.exists():
+        return None
+    try:
+        other = load_package(example)
+    except LessonValidationError:
+        return example
+    return example if other.get("review_status") != package.get("review_status") else None
+
+
+def _run_check(check, ctx: QAContext) -> CheckResult:
+    """A check that crashes becomes a FAIL row, so QA always produces a report."""
+    try:
+        return check(ctx)
+    except Exception as exc:  # noqa: BLE001 - report every failure instead of a traceback
+        name = check.__name__
+        return CheckResult(name, name.replace("_", " ").capitalize(), FAIL,
+                           f"The check could not run: {type(exc).__name__}: {exc}",
+                           "Fix the package problems listed above, then run QA again.")
+
+
 def default_report_path(project_root: Path, slug: str) -> Path:
     return Path(project_root) / "generated" / "qa" / slug / "qa_report.json"
 
@@ -54,7 +81,9 @@ def run_qa(
         video_dir=Path(video_dir or root / "generated" / "videos").resolve(), probe=probe or probe_duration,
         history=load_history(root),
     )
-    checks = [check(ctx) for check in CHECKS]
+    if package is not None and slug and package_path == _generated_package(root, slug):
+        ctx.shadowed_package = _shadowed_example(root, slug, package)
+    checks = [_run_check(check, ctx) for check in CHECKS]
     srt_path = ctx.video_dir / f"{slug}.srt"
     inputs = {
         "package": display_path(package_path, root) if package_path else None,

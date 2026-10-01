@@ -158,20 +158,25 @@ class ManimRenderer:
         final_path = output_dir / output_filename
         shutil.copy2(source, final_path)
         captions = collect_captions(media_dir, lesson, generated.package_path, output_dir)
+        # Record the render before the optional burn-in: the MP4 and captions are
+        # already in place, so history must describe them even if burning fails.
+        self.history.add(
+            "render_succeeded", topic=lesson.topic, video=str(final_path), quality=quality,
+            voiceover=lesson.voiceover.enabled,
+            captions=captions.to_dict(lambda path: display_path(path, self.root)),
+        )
         captioned_path = None
         if burn_captions:
             captioned_path = output_dir / f"{lesson.slug}_captioned.mp4"
             try:
                 burn_caption_video(final_path, parse_srt(captions.srt.read_text(encoding="utf-8")), captioned_path, quality)
             except CaptionBurnError as exc:
-                self.history.add("render_failed", topic=lesson.topic, error=str(exc)[-3000:])
+                self.history.add("caption_burn_failed", topic=lesson.topic, video=str(final_path), error=str(exc)[-3000:])
                 raise RenderError(str(exc)) from exc
-        self.history.add(
-            "render_succeeded", topic=lesson.topic, video=str(final_path), quality=quality,
-            voiceover=lesson.voiceover.enabled,
-            captions=captions.to_dict(lambda path: display_path(path, self.root)),
-            captioned_video=str(captioned_path) if captioned_path else None,
-        )
+            self.history.add(
+                "captions_burned", topic=lesson.topic, video=str(final_path),
+                captioned_video=display_path(captioned_path, self.root),
+            )
         return RenderResult(
             video_path=final_path, command=command, output=combined,
             captions=captions, captioned_video_path=captioned_path,

@@ -22,6 +22,7 @@ class RendererCaptionTests(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         root = Path(directory.name)
+        self.last_root = root
 
         def fake_run(command, cwd=None, capture_output=True, text=True):
             media = Path(command[command.index("--media_dir") + 1])
@@ -55,6 +56,7 @@ class RendererCaptionTests(unittest.TestCase):
         self.assertTrue(result.captions.vtt.read_text(encoding="utf-8").startswith("WEBVTT"))
         self.assertEqual(result.video_path.parent, result.captions.srt.parent)
         succeeded = history[-1]
+        self.assertEqual("render", json.loads((result.video_path.parent / "python_for_loops.captions.json").read_text())["source"])
         self.assertEqual("render_succeeded", succeeded["event"])
         self.assertEqual({"srt", "vtt", "source", "cue_count"}, set(succeeded["captions"]))
         self.assertEqual(2, succeeded["captions"]["cue_count"])
@@ -68,11 +70,16 @@ class RendererCaptionTests(unittest.TestCase):
     def test_burn_writes_captioned_copy(self):
         result, history, _root = self.render(write_srt=True, burn=True)
         self.assertEqual("python_for_loops_captioned.mp4", result.captioned_video_path.name)
+        self.assertEqual("captions_burned", history[-1]["event"])
         self.assertTrue(history[-1]["captioned_video"].endswith("python_for_loops_captioned.mp4"))
 
-    def test_burn_failure_is_a_render_error(self):
+    def test_burn_failure_is_a_render_error_but_the_render_is_recorded(self):
         with self.assertRaisesRegex(RenderError, "ffmpeg failed"):
             self.render(write_srt=True, burn=True, burn_ok=False)
+        history = [json.loads(line) for line in (self.last_root / "generated" / "history.jsonl").read_text().splitlines()]
+        events = [record["event"] for record in history]
+        self.assertEqual(["render_started", "render_succeeded", "caption_burn_failed"], events)
+        self.assertIn("video", history[-1])
 
 
 if __name__ == "__main__":

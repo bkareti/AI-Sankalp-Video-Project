@@ -97,15 +97,35 @@ def extract_frames(video: Path, times: Sequence[float], out_dir: Path) -> List[P
     return paths
 
 
+SANDBOX_ITEMS = ("app.py", "ai_sankalp", "templates", "assets")
+
+
+def make_sandbox(slug: str, sandbox: Path, project_root: Path = PROJECT_ROOT) -> Path:
+    """Copy the code and the tracked package into `sandbox`, so a golden render
+    never touches the real generated/ configs, scenes, history, or render cache."""
+    sandbox.mkdir(parents=True, exist_ok=True)
+    ignore = shutil.ignore_patterns("__pycache__", "*.pyc")
+    for name in SANDBOX_ITEMS:
+        source = project_root / name
+        target = sandbox / name
+        if source.is_dir():
+            shutil.copytree(source, target, ignore=ignore)
+        else:
+            shutil.copy2(source, target)
+    shutil.copytree(project_root / "examples" / slug, sandbox / "examples" / slug, ignore=ignore)
+    return sandbox
+
+
 def render_silent_video(slug: str, out_dir: Path, project_root: Path = PROJECT_ROOT) -> Path:
-    """Render the tracked package silently at low quality into `out_dir`."""
-    package = project_root / "examples" / slug / "lesson_package.json"
+    """Render the tracked package silently at low quality, in a sandbox copy of the project."""
+    sandbox = make_sandbox(slug, Path(out_dir) / "sandbox", project_root)
+    package = sandbox / "examples" / slug / "lesson_package.json"
     subprocess.run(
-        [sys.executable, str(project_root / "app.py"), "generate", "--config", str(package),
+        [sys.executable, str(sandbox / "app.py"), "generate", "--config", str(package),
          "--render", "--no-voiceover", "--quality", "low", "--output-dir", str(out_dir)],
-        cwd=project_root, check=True, capture_output=True, text=True,
+        cwd=sandbox, check=True, capture_output=True, text=True,
     )
-    return out_dir / f"{slug}.mp4"
+    return Path(out_dir) / f"{slug}.mp4"
 
 
 def frames_snapshot(video: Path, work_dir: Path) -> Dict[str, Any]:

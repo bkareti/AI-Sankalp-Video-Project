@@ -323,6 +323,11 @@ python app.py generate --config examples/arrays_in_cpp/lesson_package.json --ren
 python app.py captions --config examples/arrays_in_cpp/lesson_package.json
 ```
 
+`<name>.captions.json`, next to the captions, records whether they were timed by a
+render or estimated. QA reads it. `app.py captions` will not replace
+render-timed captions unless you add `--force`; use `--output-dir` for a
+separate copy.
+
 Burned-in captions sit in the reserved bottom band above the footer, so they
 never cover lesson visuals. Burn-in uses Pillow and ffmpeg's `overlay` filter,
 so ffmpeg does not need libass. It re-encodes the video.
@@ -353,6 +358,9 @@ Exit codes: `0` final-ready, `2` needs review, `1` failed.
 
 A lesson is final-ready only when every check passes, including SME approval.
 See `docs/review-checklist.md` for how an SME reviews and records approval.
+Record approval in the package file QA names in its first row: `--slug`
+prefers `generated/packages/<slug>/` over `examples/<slug>/`, and QA flags it
+when both exist with different `review_status`.
 The tracked example packages are not approved yet, so QA reports them as not
 final-ready.
 

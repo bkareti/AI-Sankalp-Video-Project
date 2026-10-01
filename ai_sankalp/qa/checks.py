@@ -6,11 +6,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from ..captions import SOURCE_ESTIMATED, caption_paths, parse_srt, validate_cues
+from ..captions import SOURCE_ESTIMATED, caption_paths, parse_srt, read_caption_source, validate_cues
 from ..generator import check_template_prerequisites
 from ..history import HistoryLog
 from ..models import LessonConfig, LessonValidationError
-from ..package import CHECKLIST_ITEMS, display_path, package_to_lesson, validate_package
+from ..package import CHECKLIST_ITEMS, display_path, package_to_lesson, review_status_issues, validate_package
 from .report import FAIL, NEEDS_REVIEW, PASS, CheckResult
 
 DURATION_TOLERANCE = 0.35
@@ -29,6 +29,10 @@ class QAContext:
     lesson: Optional[LessonConfig] = None
     video_duration: Optional[float] = None
     history: List[Dict[str, Any]] = field(default_factory=list)
+    # Set by package_schema: later checks only read package fields from a valid package.
+    package_valid: bool = False
+    # An examples/ package hidden by a generated/packages copy with a different review_status.
+    shadowed_package: Optional[Path] = None
 
     def rel(self, path: Path) -> str:
         return display_path(path, self.root)
@@ -55,12 +59,24 @@ def _missing_package(check_id: str, title: str, ctx: QAContext) -> CheckResult:
                        "Fix the package checks above first.")
 
 
+def _needs_valid_package(ctx: QAContext) -> bool:
+    return ctx.package is None or not ctx.package_valid
+
+
 def package_present(ctx: QAContext) -> CheckResult:
     title = "Lesson package exists"
     if ctx.package is None:
         return CheckResult("package_present", title, FAIL, ctx.package_error or f"No lesson package found for '{ctx.slug}'.",
                            "Create the package with the ai-sankalp-video-assets skill, or pass --package <path>.")
-    return CheckResult("package_present", title, PASS, f"Found {ctx.config_arg}.")
+    if ctx.shadowed_package is not None:
+        return CheckResult(
+            "package_present", title, NEEDS_REVIEW,
+            f"QA is checking {ctx.config_arg}, but {ctx.rel(ctx.shadowed_package)} also exists with a different "
+            "review_status. Approvals must go in the file QA checks.",
+            f"Record review_status in {ctx.config_arg}, remove the stale copy, or run: "
+            f"python app.py qa --package {ctx.rel(ctx.shadowed_package)}",
+        )
+    return CheckResult("package_present", title, PASS, f"Found {ctx.config_arg}. Record SME approval in this file.")
 
 
 def package_schema(ctx: QAContext) -> CheckResult:
@@ -68,6 +84,7 @@ def package_schema(ctx: QAContext) -> CheckResult:
     if ctx.package is None:
         return _missing_package("package_schema", title, ctx)
     issues = validate_package(ctx.package)
+    ctx.package_valid = not issues
     if issues:
         return CheckResult(
             "package_schema", title, FAIL, f"{len(issues)} field problem(s) in the package.",
@@ -79,7 +96,7 @@ def package_schema(ctx: QAContext) -> CheckResult:
 
 def reduced_config(ctx: QAContext) -> CheckResult:
     title = "Render config matches the package"
-    if ctx.package is None:
+    if _needs_valid_package(ctx):
         return _missing_package("reduced_config", title, ctx)
     try:
         ctx.lesson = package_to_lesson(ctx.package)
@@ -95,8 +112,12 @@ def reduced_config(ctx: QAContext) -> CheckResult:
     except (ValueError, LessonValidationError) as exc:
         return CheckResult("reduced_config", title, FAIL, f"{ctx.rel(generated)} cannot be read: {exc}", fix)
     if current != ctx.lesson:
-        return CheckResult("reduced_config", title, NEEDS_REVIEW,
-                           f"{ctx.rel(generated)} differs from the package (it was generated from older content).", fix)
+        current.voiceover.enabled = ctx.lesson.voiceover.enabled
+        reason = (
+            "was generated with --no-voiceover (a silent preview)" if current == ctx.lesson
+            else "was generated from older package content"
+        )
+        return CheckResult("reduced_config", title, NEEDS_REVIEW, f"{ctx.rel(generated)} differs from the package: it {reason}.", fix)
     return CheckResult("reduced_config", title, PASS, f"{ctx.rel(generated)} matches the package.")
 
 
@@ -128,7 +149,7 @@ def scene_compiles(ctx: QAContext) -> CheckResult:
 
 def required_assets(ctx: QAContext) -> CheckResult:
     title = "Reused and generated assets are present"
-    if ctx.package is None:
+    if _needs_valid_package(ctx):
         return _missing_package("required_assets", title, ctx)
     package_dir = ctx.package_path.parent if ctx.package_path else ctx.root
     search = [ctx.root / "assets", package_dir / "assets", package_dir]
@@ -156,7 +177,7 @@ def final_video(ctx: QAContext) -> CheckResult:
     if ctx.video_duration is None:
         return CheckResult("final_video", title, NEEDS_REVIEW, "The video length could not be measured (is ffprobe installed?).",
                            "Install ffmpeg (which includes ffprobe), or watch the video to confirm its length.")
-    planned = float((ctx.package or {}).get("duration_minutes") or 0) * 60
+    planned = float(ctx.package["duration_minutes"]) * 60 if ctx.package_valid else 0.0
     if planned and abs(ctx.video_duration - planned) / planned > DURATION_TOLERANCE:
         return CheckResult(
             "final_video", title, NEEDS_REVIEW,
@@ -182,10 +203,12 @@ def captions(ctx: QAContext) -> CheckResult:
     if not cues or len(vtt_cues) != len(cues):
         return CheckResult("captions", title, FAIL, "The SRT has no cues, or the SRT and VTT disagree.", fix)
     problems = validate_cues(cues, ctx.video_duration)
-    record = ctx.latest_render() or {}
-    source = (record.get("captions") or {}).get("source")
+    # The sidecar written with the files is authoritative; history is a fallback for older renders.
+    source = read_caption_source(ctx.video_dir, ctx.slug) or ((ctx.latest_render() or {}).get("captions") or {}).get("source")
     if source == SOURCE_ESTIMATED:
         problems.insert(0, "captions were estimated from narration text, not timed by the render")
+    elif source is None:
+        problems.insert(0, "it is unknown how these captions were timed (no captions.json or render record)")
     if problems:
         return CheckResult(
             "captions", title, NEEDS_REVIEW, "The captions need a human check.",
@@ -215,20 +238,28 @@ def sme_approval(ctx: QAContext) -> CheckResult:
     title = "Subject-matter expert approved the lesson"
     fix = ("Ask the SME to review the video with docs/review-checklist.md, then set review_status.sme_approved, "
            f"sme_reviewer and sme_approved_on in {ctx.config_arg}.")
-    review = (ctx.package or {}).get("review_status")
+    if _needs_valid_package(ctx):
+        review = (ctx.package or {}).get("review_status")
+        if isinstance(review, dict) and review.get("sme_approved") is not True:
+            return CheckResult("sme_approval", title, FAIL, "review_status.sme_approved is false.", fix)
+        return CheckResult("sme_approval", title, FAIL,
+                           "Approval cannot be confirmed until the package schema problems are fixed.", fix)
+    review = ctx.package.get("review_status")
     if not isinstance(review, dict):
         return CheckResult("sme_approval", title, FAIL, "The package has no review_status.", fix)
     if review.get("sme_approved") is not True:
         return CheckResult("sme_approval", title, FAIL, "review_status.sme_approved is false.", fix)
-    reviewer, approved_on = review.get("sme_reviewer"), review.get("sme_approved_on")
-    if not isinstance(reviewer, str) or not reviewer.strip() or not isinstance(approved_on, str):
-        return CheckResult("sme_approval", title, FAIL, "An approval must name sme_reviewer and sme_approved_on.", fix)
-    return CheckResult("sme_approval", title, PASS, f"Approved by {reviewer} on {approved_on}.")
+    issues = review_status_issues(ctx.package)
+    if issues:
+        return CheckResult("sme_approval", title, FAIL, "The approval is incomplete.", fix, [str(issue) for issue in issues])
+    return CheckResult("sme_approval", title, PASS, f"Approved by {review['sme_reviewer']} on {review['sme_approved_on']}.")
 
 
 def manual_checklist(ctx: QAContext) -> CheckResult:
     title = "Manual review checklist is complete"
-    checklist = ((ctx.package or {}).get("review_status") or {}).get("checklist") or {}
+    if _needs_valid_package(ctx):
+        return _missing_package("manual_checklist", title, ctx)
+    checklist = (ctx.package.get("review_status") or {}).get("checklist") or {}
     open_items = [f"{item}: {checklist.get(item, 'pending')}" for item in CHECKLIST_ITEMS if checklist.get(item) != "pass"]
     if open_items:
         return CheckResult(

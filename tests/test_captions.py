@@ -143,6 +143,25 @@ class CaptionsCliTests(unittest.TestCase):
             self.assertTrue((Path(directory) / "python_for_loops.srt").exists())
             self.assertTrue((Path(directory) / "python_for_loops.vtt").exists())
 
+    def test_captions_command_will_not_replace_render_captions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            export_captions([Cue(0, 1, "Timed by a render.")], Path(directory), "python_for_loops", "render")
+            config = str(ROOT / "examples" / "python_for_loops.json")
+            with contextlib.redirect_stderr(io.StringIO()) as stderr, contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(1, app.main(["captions", "--config", config, "--output-dir", directory]))
+            self.assertIn("--force", stderr.getvalue())
+            self.assertIn("Timed by a render.", (Path(directory) / "python_for_loops.srt").read_text(encoding="utf-8"))
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(0, app.main(["captions", "--config", config, "--output-dir", directory, "--force"]))
+
+    def test_export_records_the_source(self):
+        from ai_sankalp.captions import read_caption_source
+
+        with tempfile.TemporaryDirectory() as directory:
+            export_captions([Cue(0, 1, "x")], Path(directory), "lesson", "render")
+            self.assertEqual("render", read_caption_source(Path(directory), "lesson"))
+            self.assertIsNone(read_caption_source(Path(directory), "missing"))
+
     def test_burn_flag_parses(self):
         self.assertTrue(app.build_parser().parse_args(["sample", "--burn-captions"]).burn_captions)
         self.assertTrue(app.build_parser().parse_args(["generate", "--config", "x", "--burn-captions"]).burn_captions)

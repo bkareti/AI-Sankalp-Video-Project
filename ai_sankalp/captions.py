@@ -7,6 +7,7 @@ When a render has no SRT, :func:`estimate_cues_from_package` or
 """
 from __future__ import annotations
 
+import json
 import re
 import textwrap
 from dataclasses import dataclass
@@ -52,6 +53,8 @@ def _sentences(text: str) -> List[str]:
 def chunk_caption_text(text: str, line_chars: int = LINE_CHARS, max_lines: int = MAX_LINES) -> List[str]:
     """Split narration into cues of at most `max_lines` lines of `line_chars`."""
     chunks: List[str] = []
+    # A single token longer than a line (a long URL or identifier) is split
+    # across lines, which shows a space inside it; lesson narration rarely has one.
     for sentence in _sentences(" ".join(text.split())):
         # wrap() bounds every line, so a chunk of max_lines lines never needs trimming.
         lines = textwrap.wrap(sentence, line_chars, break_long_words=True)
@@ -201,9 +204,24 @@ def caption_paths(output_dir: Path, slug: str):
     return Path(output_dir) / f"{slug}.srt", Path(output_dir) / f"{slug}.vtt"
 
 
+def caption_info_path(output_dir: Path, slug: str) -> Path:
+    """Sidecar that records how the captions next to it were timed."""
+    return Path(output_dir) / f"{slug}.captions.json"
+
+
+def read_caption_source(output_dir: Path, slug: str) -> Optional[str]:
+    try:
+        return json.loads(caption_info_path(output_dir, slug).read_text(encoding="utf-8")).get("source")
+    except (OSError, ValueError, AttributeError):
+        return None
+
+
 def export_captions(cues: Sequence[Cue], output_dir: Path, slug: str, source: str) -> CaptionFiles:
     srt_path, vtt_path = caption_paths(output_dir, slug)
     srt_path.parent.mkdir(parents=True, exist_ok=True)
     srt_path.write_text(format_srt(cues), encoding="utf-8")
     vtt_path.write_text(format_vtt(cues), encoding="utf-8")
+    caption_info_path(output_dir, slug).write_text(
+        json.dumps({"source": source, "cue_count": len(cues)}) + "\n", encoding="utf-8",
+    )
     return CaptionFiles(srt=srt_path, vtt=vtt_path, source=source, cue_count=len(cues))
