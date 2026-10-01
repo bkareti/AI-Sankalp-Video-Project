@@ -2,7 +2,7 @@
 
 A reusable local Python app that turns a programming topic, explanation, and code example into a branded animated Manim lesson. Lessons are data, not hand-edited scene files: create a JSON/YAML config or fill in the desktop form, then generate and render.
 
-The video template includes an intro, lesson title, step-by-step explanation cards, an animated visual model, syntax-highlighted code, a recap, persistent AI Sankalp branding, optional gTTS narration/subcaptions, and an outro.
+The video template includes an intro, lesson title, step-by-step explanation cards, optional data-driven section visuals, syntax-highlighted code, a recap, persistent AI Sankalp branding, optional gTTS narration/subcaptions, and an outro.
 
 ## Project structure
 
@@ -203,6 +203,56 @@ id, or the lesson is not a C++ array lesson. Use `standard` for everything else.
 - Both providers need internet access while rendering. Both templates honor
   the selected provider. Add `--no-voiceover` to `generate` or `sample` to
   render offline.
+
+### Section visuals
+
+A section can add an optional `visual`. Without one, the slide uses a
+full-width bullet panel; nothing is invented from the bullet text. With one,
+the bullets move left and the visual is drawn on the right using only the text
+you supply.
+
+```json
+{
+  "title": "Follow the iteration",
+  "bullets": ["Python takes the first item from the sequence."],
+  "visual": {
+    "type": "flow",
+    "title": "One pass of the loop",
+    "items": ["Take the next item", "Run the indented body", "Move to the next item"]
+  }
+}
+```
+
+| `type` | Parameters |
+|---|---|
+| `flow` | `items`: 2 to 5 short steps joined by arrows. |
+| `steps` | `items`: 2 to 5 numbered steps. |
+| `compare` | `left` and `right`: each `{"title": ..., "items": [1 to 4 lines]}`. |
+| `table` | `columns`: 1 to 4 headings; `rows`: 1 to 6 rows with one cell per column. |
+
+Every visual accepts an optional `title` (up to 48 characters) shown above it.
+Invalid visuals fail when the config is loaded, for example
+`section 2 visual: items must have 2 to 5 items (got 6)`.
+`examples/python_for_loops.json` shows a full-width section, a `flow`, and a
+`table`.
+
+## Brand kit and fonts
+
+`ai_sankalp/brand.py` is the single source for the palette, fonts, logo and
+footer placement, safe margins, and the caption band. Both templates and every
+primitive import from it; no template hardcodes a color or font name.
+
+- **Logo:** `assets/ai_sankalp_logo.svg` drawn as-is in the upper-right safe
+  area at its native proportions.
+- **Footer:** `AI SANKALP • VISUAL LEARNING`, small and muted, bottom-left.
+- **Fonts:** the first installed family from a sans and a mono fallback chain,
+  ending in the generic `Sans`/`Monospace` families so text is never serif.
+  Drop `.ttf`/`.otf` files in `assets/fonts/` to bundle fonts (see
+  `assets/fonts/README.md`).
+- **Caption band:** the lowest part of the frame above the footer is reserved
+  for captions; slides keep content above it.
+
+Use `docs/brand-checklist.md` to check a render.
 
 ## Rich lesson packages
 

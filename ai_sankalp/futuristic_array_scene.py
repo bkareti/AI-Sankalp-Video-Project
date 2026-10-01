@@ -5,24 +5,21 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
 from manim import (
-    AnimationGroup, Arrow, BLUE, BOLD, Circle, Code, Create, DashedLine, Dot,
-    DOWN, FadeIn, FadeOut, Flash, GrowArrow, GrowFromCenter, Indicate, LaggedStart,
-    LEFT, Line, MoveAlongPath, ORIGIN, PI, RED, RIGHT, RoundedRectangle,
-    Square, SVGMobject, Text, Transform, TransformFromCopy, Triangle, UP, UR,
-    VGroup, WHITE, Write, config, linear, smooth, there_and_back,
+    Arrow, BOLD, Circle, Create, DashedLine, Dot, DOWN, FadeIn, FadeOut, Flash,
+    GrowArrow, GrowFromCenter, Indicate, LaggedStart, LEFT, Line, MoveAlongPath, PI,
+    RIGHT, RoundedRectangle, Text, Transform, Triangle, UP, VGroup, linear, smooth,
+    there_and_back,
 )
 from manim_voiceover import VoiceoverScene
 
+from .brand import (
+    ACCENT_CYCLE, CORAL, CYAN, ELECTRIC, GOLD, MINT, MUTED, PANEL, PANEL_2, SOFT_WHITE, VIOLET, brand_fonts,
+)
 from .config_io import load_config
 from .package import load_package, resolve_package_path  # noqa: F401  (re-exported)
+from .primitives.frame import add_brand_frame
+from .primitives.layout import code_block, fit, glass_card, section_label, title_text
 from .speech import build_speech_service
-from .manim_scene import ACCENT, BG, CORAL, CYAN, GOLD, MINT, MUTED, PANEL, PANEL_2, SOFT_WHITE
-
-
-FONT = "Avenir Next"
-MONO = "Menlo"
-VIOLET = "#9A7BFF"
-ELECTRIC = "#4C8DFF"
 
 
 class FuturisticArrayLesson(VoiceoverScene):
@@ -38,15 +35,16 @@ class FuturisticArrayLesson(VoiceoverScene):
         package = load_package(package_path)
         self.script: Dict[str, str] = {scene["id"]: scene["voiceover"] for scene in package["scenes"]}
 
-        self.camera.background_color = BG
+        self.fonts = brand_fonts()
         if self.lesson.voiceover.enabled:
             self.set_speech_service(
                 build_speech_service(self.lesson.voiceover, project_root),
                 create_subcaption=True,
             )
 
-        self._add_futuristic_background()
-        self._add_original_logo(project_root)
+        frame = add_brand_frame(self, self.fonts, style="grid")
+        self.logo = frame.logo
+        self.ambient_orbit = frame.ambient
         self._show_intro()
         self._show_motivation()
         self._show_mental_model()
@@ -58,54 +56,15 @@ class FuturisticArrayLesson(VoiceoverScene):
         self._show_practice()
         self._show_summary_and_outro()
 
-    def _add_original_logo(self, project_root: Path) -> None:
-        logo_path = project_root / "assets" / "ai_sankalp_logo.svg"
-        if not logo_path.exists():
-            raise FileNotFoundError(f"AI Sankalp logo not found: {logo_path}")
-        # Render the supplied SVG directly. Do not add a badge, border, text, or recoloring.
-        self.logo = SVGMobject(str(logo_path)).set(width=0.72).to_corner(UR, buff=0.22)
-        self.logo.set_z_index(100)
-        self.add_foreground_mobjects(self.logo)
-
-    def _add_futuristic_background(self) -> None:
-        grid = VGroup()
-        for x in range(-7, 8):
-            grid.add(Line([x, -4, 0], [x, 4, 0], color=ELECTRIC, stroke_width=0.45, stroke_opacity=0.055))
-        for y in range(-4, 5):
-            grid.add(Line([-8, y, 0], [8, y, 0], color=CYAN, stroke_width=0.45, stroke_opacity=0.045))
-        glows = VGroup(
-            Circle(radius=3.4, color=ELECTRIC, stroke_opacity=0.08, stroke_width=3).shift(LEFT * 6 + DOWN * 2.8),
-            Circle(radius=2.7, color=VIOLET, stroke_opacity=0.07, stroke_width=3).shift(RIGHT * 6 + UP * 2.7),
-        )
-        circuits = VGroup(
-            Line([-7, 2.8, 0], [-5.7, 2.8, 0], color=CYAN, stroke_opacity=0.16),
-            Line([-5.7, 2.8, 0], [-5.2, 2.3, 0], color=CYAN, stroke_opacity=0.16),
-            Line([5.2, -2.8, 0], [6.5, -2.8, 0], color=VIOLET, stroke_opacity=0.16),
-            Line([5.2, -2.8, 0], [4.7, -2.3, 0], color=VIOLET, stroke_opacity=0.16),
-            Dot([-5.7, 2.8, 0], radius=0.035, color=CYAN),
-            Dot([5.2, -2.8, 0], radius=0.035, color=VIOLET),
-        )
-        self.ambient_orbit = Circle(radius=3.15, color=CYAN, stroke_width=1, stroke_opacity=0.04)
-        self.ambient_orbit.shift(RIGHT * 5.6 + UP * 2.9)
-        background = VGroup(grid, glows, circuits, self.ambient_orbit).set_z_index(-20)
-        self.add(background)
-
     @staticmethod
     def _fit(mobject, max_width: float, max_height: float | None = None):
-        if mobject.width > max_width:
-            mobject.scale_to_fit_width(max_width)
-        if max_height is not None and mobject.height > max_height:
-            mobject.scale_to_fit_height(max_height)
-        return mobject
+        return fit(mobject, max_width, max_height)
 
-    def _section_label(self, value: str) -> Text:
-        return Text(value.upper(), font=FONT, font_size=15, color=CYAN, weight=BOLD).to_edge(LEFT, buff=0.45).to_edge(UP, buff=0.28)
+    def _section_label(self, value: str):
+        return section_label(value, self.fonts)
 
-    def _title(self, value: str, size: int = 40) -> Text:
-        title = Text(value, font=FONT, font_size=size, color=SOFT_WHITE, weight=BOLD)
-        self._fit(title, 11.2)
-        title.to_edge(UP, buff=0.48).to_edge(LEFT, buff=0.45)
-        return title
+    def _title(self, value: str, size: int = 40):
+        return title_text(value, self.fonts, size)
 
     def _sentences(self, scene_id: str) -> List[str]:
         return [piece.strip() for piece in re.findall(r"[^.!?]+(?:[.!?]+|$)", self.script[scene_id]) if piece.strip()]
@@ -129,7 +88,7 @@ class FuturisticArrayLesson(VoiceoverScene):
 
     def _array_cells(self, values, indexes=True, scale=1.0) -> VGroup:
         cells = VGroup()
-        colors = [CYAN, ELECTRIC, VIOLET, MINT, GOLD]
+        colors = ACCENT_CYCLE
         for index, value in enumerate(values):
             color = colors[index % len(colors)]
             glow = RoundedRectangle(
@@ -143,11 +102,11 @@ class FuturisticArrayLesson(VoiceoverScene):
             )
             inner = RoundedRectangle(
                 width=1.17, height=0.84, corner_radius=0.12,
-                stroke_color=WHITE, stroke_opacity=0.08,
+                stroke_color=SOFT_WHITE, stroke_opacity=0.08,
                 fill_color=PANEL, fill_opacity=0.8,
             ).shift(DOWN * 0.07)
-            value_text = Text(str(value), font=FONT, font_size=31, color=SOFT_WHITE, weight=BOLD).shift(DOWN * 0.08)
-            index_text = Text(f"[{index}]", font=MONO, font_size=15, color=color, weight=BOLD).shift(UP * 0.48)
+            value_text = Text(str(value), font=self.fonts.sans, font_size=31, color=SOFT_WHITE, weight=BOLD).shift(DOWN * 0.08)
+            index_text = Text(f"[{index}]", font=self.fonts.mono, font_size=15, color=color, weight=BOLD).shift(UP * 0.48)
             port = Dot(radius=0.045, color=color).next_to(shell, DOWN, buff=0.02)
             cell = VGroup(glow, shell, inner, value_text, index_text, port)
             if not indexes:
@@ -157,15 +116,7 @@ class FuturisticArrayLesson(VoiceoverScene):
         return cells
 
     def _glass_card(self, text: str, color=CYAN, width=2.55, height=0.82, font_size=22) -> VGroup:
-        box = RoundedRectangle(
-            width=width, height=height, corner_radius=0.16,
-            stroke_color=color, stroke_width=1.8,
-            fill_color=PANEL_2, fill_opacity=0.94,
-        )
-        label = Text(text, font=FONT, font_size=font_size, color=SOFT_WHITE, weight=BOLD)
-        self._fit(label, width - 0.32, height - 0.18)
-        label.move_to(box)
-        return VGroup(box, label)
+        return glass_card(text, self.fonts, color=color, width=width, height=height, font_size=font_size)
 
     def _clear(self, *groups) -> None:
         visible = [group for group in groups if group is not None]
@@ -173,10 +124,10 @@ class FuturisticArrayLesson(VoiceoverScene):
             self.play(*[FadeOut(group, shift=UP * 0.08) for group in visible], run_time=0.55)
 
     def _show_intro(self) -> None:
-        eyebrow = Text("C++  •  MEMORY VISUALIZED", font=FONT, font_size=16, color=CYAN, weight=BOLD)
-        title = Text("ARRAYS", font=FONT, font_size=84, color=SOFT_WHITE, weight=BOLD)
+        eyebrow = Text("C++  •  MEMORY VISUALIZED", font=self.fonts.sans, font_size=16, color=CYAN, weight=BOLD)
+        title = Text("ARRAYS", font=self.fonts.sans, font_size=84, color=SOFT_WHITE, weight=BOLD)
         title.set_color_by_gradient(CYAN, ELECTRIC, VIOLET)
-        subtitle = Text("Store  •  Access  •  Traverse", font=FONT, font_size=27, color=MUTED)
+        subtitle = Text("Store  •  Access  •  Traverse", font=self.fonts.sans, font_size=27, color=MUTED)
         title_group = VGroup(eyebrow, title, subtitle).arrange(DOWN, buff=0.18).shift(UP * 1.2)
         lane = self._array_cells([70, 85, 90, 75, 88], indexes=False, scale=0.88).shift(DOWN * 1.15)
         rail = Line(lane.get_left() + LEFT * 0.4, lane.get_right() + RIGHT * 0.4, color=CYAN, stroke_width=2, stroke_opacity=0.42)
@@ -197,11 +148,11 @@ class FuturisticArrayLesson(VoiceoverScene):
         label = self._section_label("01 / WHY ARRAYS")
         title = self._title("From scattered values to one data lane")
         loose = VGroup(*[
-            self._glass_card(f"mark{i + 1}  =  {value}", color=[CYAN, ELECTRIC, VIOLET, MINT, GOLD][i], width=2.25)
+            self._glass_card(f"mark{i + 1}  =  {value}", color=ACCENT_CYCLE[i], width=2.25)
             for i, value in enumerate([70, 85, 90, 75, 88])
         ])
         loose.arrange_in_grid(rows=2, cols=3, buff=(0.35, 0.3)).shift(DOWN * 0.45)
-        count = Text("5 names  →  1 array", font=FONT, font_size=26, color=GOLD, weight=BOLD).to_edge(DOWN, buff=0.65)
+        count = Text("5 names  →  1 array", font=self.fonts.sans, font_size=26, color=GOLD, weight=BOLD).to_edge(DOWN, buff=0.65)
         lane = self._array_cells([70, 85, 90, 75, 88], indexes=False).shift(DOWN * 0.3)
         array_name = self._glass_card("marks", color=MINT, width=1.7, height=0.62, font_size=21).next_to(lane, UP, buff=0.35)
         group = VGroup(label, title, loose, count)
@@ -222,7 +173,7 @@ class FuturisticArrayLesson(VoiceoverScene):
         title = self._title("A fixed-size lane in memory")
         lane = self._array_cells([70, 85, 90, 75, 88]).shift(UP * 0.45)
         addresses = VGroup(*[
-            Text(str(4096 + i * 4), font=MONO, font_size=14, color=MUTED)
+            Text(str(4096 + i * 4), font=self.fonts.mono, font_size=14, color=MUTED)
             for i in range(5)
         ])
         for address, cell in zip(addresses, lane):
@@ -259,12 +210,12 @@ class FuturisticArrayLesson(VoiceoverScene):
             self._glass_card("{70, 85, 90, 75, 88}", color=VIOLET, width=4.35),
         ).arrange(RIGHT, buff=0.2).shift(UP * 0.7)
         captions = VGroup(*[
-            Text(text, font=FONT, font_size=16, color=color)
+            Text(text, font=self.fonts.sans, font_size=16, color=color)
             for text, color in [("type", CYAN), ("name", GOLD), ("size", MINT), ("starting values", VIOLET)]
         ])
         for caption, token in zip(captions, tokens):
             caption.next_to(token, UP, buff=0.17)
-        code_line = Text("int marks[5] = {70, 85, 90, 75, 88};", font=MONO, font_size=29, color=SOFT_WHITE)
+        code_line = Text("int marks[5] = {70, 85, 90, 75, 88};", font=self.fonts.mono, font_size=29, color=SOFT_WHITE)
         code_panel = RoundedRectangle(
             width=code_line.width + 0.75, height=0.95, corner_radius=0.16,
             stroke_color=ELECTRIC, fill_color=PANEL, fill_opacity=0.96,
@@ -299,7 +250,7 @@ class FuturisticArrayLesson(VoiceoverScene):
         path = Arrow(access.get_right(), lane[2].get_bottom(), buff=0.16, color=CYAN, stroke_width=3)
         path2 = Arrow(lane[2].get_bottom(), result.get_left(), buff=0.16, color=MINT, stroke_width=3)
         scan = RoundedRectangle(width=1.58, height=1.48, corner_radius=0.2, color=CYAN, stroke_width=4).move_to(lane[0])
-        offset = Text("start  +  2 steps", font=MONO, font_size=19, color=CYAN).next_to(lane, DOWN, buff=0.3)
+        offset = Text("start  +  2 steps", font=self.fonts.mono, font_size=19, color=CYAN).next_to(lane, DOWN, buff=0.3)
         group = VGroup(label, title, lane, access, result, path, path2, scan, offset)
 
         actions = [
@@ -320,13 +271,7 @@ class FuturisticArrayLesson(VoiceoverScene):
     def _show_code(self) -> None:
         label = self._section_label("05 / CODE TO MACHINE")
         title = self._title("A tiny program, three clear jobs")
-        code = Code(
-            code_string=self.lesson.code_example,
-            language="cpp",
-            formatter_style="monokai",
-            add_line_numbers=True,
-            background="window",
-        )
+        code = code_block(self.lesson.code_example, "cpp", self.fonts)
         self._fit(code, 8.2, 5.15)
         code.shift(LEFT * 2.1 + DOWN * 0.25)
         stages = VGroup(
@@ -360,10 +305,10 @@ class FuturisticArrayLesson(VoiceoverScene):
         pointer = Triangle(fill_color=CYAN, fill_opacity=1, stroke_color=CYAN).scale(0.13).rotate(PI)
         pointer.next_to(lane[0], UP, buff=0.12)
         i_label = self._glass_card("i = 0", color=CYAN, width=1.45, height=0.58, font_size=19).next_to(pointer, UP, buff=0.12)
-        output_title = Text("OUTPUT STREAM", font=FONT, font_size=15, color=MUTED, weight=BOLD)
+        output_title = Text("OUTPUT STREAM", font=self.fonts.sans, font_size=15, color=MUTED, weight=BOLD)
         output_title.shift(DOWN * 1.0)
         output_slots = VGroup(*[
-            self._glass_card(str(value), color=[CYAN, ELECTRIC, VIOLET, MINT, GOLD][i], width=1.15, height=0.68, font_size=22)
+            self._glass_card(str(value), color=ACCENT_CYCLE[i], width=1.15, height=0.68, font_size=22)
             for i, value in enumerate([70, 85, 90, 75, 88])
         ]).arrange(RIGHT, buff=0.17).next_to(output_title, DOWN, buff=0.25)
         for slot in output_slots:
@@ -380,8 +325,8 @@ class FuturisticArrayLesson(VoiceoverScene):
                 lane[index][1].animate.set_stroke(CYAN, width=4),
             ]
             if index > 0:
-                animations.append(lane[index - 1][1].animate.set_stroke([CYAN, ELECTRIC, VIOLET, MINT, GOLD][index - 1], width=2.2))
-            i_label[1].become(Text(f"i = {index}", font=FONT, font_size=19, color=SOFT_WHITE, weight=BOLD).move_to(i_label[0]))
+                animations.append(lane[index - 1][1].animate.set_stroke(ACCENT_CYCLE[index - 1], width=2.2))
+            i_label[1].become(Text(f"i = {index}", font=self.fonts.sans, font_size=19, color=SOFT_WHITE, weight=BOLD).move_to(i_label[0]))
             self.play(*animations, run_time=duration)
 
         actions = [
@@ -408,12 +353,12 @@ class FuturisticArrayLesson(VoiceoverScene):
             stroke_color=CORAL, stroke_width=2.5, stroke_opacity=0.75,
             fill_color=CORAL, fill_opacity=0.07,
         ).next_to(lane, RIGHT, buff=0.2)
-        ghost_label = Text("[5]", font=MONO, font_size=18, color=CORAL, weight=BOLD).move_to(ghost_box)
+        ghost_label = Text("[5]", font=self.fonts.mono, font_size=18, color=CORAL, weight=BOLD).move_to(ghost_box)
         ghost = VGroup(ghost_box, ghost_label)
         barrier = DashedLine(ghost.get_left() + DOWN * 1.0, ghost.get_left() + UP * 1.0, color=CORAL, dash_length=0.09)
         wrong = self._glass_card("WRONG   i <= 5", color=CORAL, width=3.15, height=0.8, font_size=23).shift(DOWN * 1.45 + LEFT * 2.3)
         correct = self._glass_card("SAFE   i < 5", color=MINT, width=3.15, height=0.8, font_size=23).shift(DOWN * 1.45 + RIGHT * 2.3)
-        warning = Text("UNDEFINED BEHAVIOR", font=FONT, font_size=20, color=CORAL, weight=BOLD).next_to(ghost, DOWN, buff=0.32)
+        warning = Text("UNDEFINED BEHAVIOR", font=self.fonts.sans, font_size=20, color=CORAL, weight=BOLD).next_to(ghost, DOWN, buff=0.32)
         group = VGroup(label, title, lane, ghost, barrier, wrong, correct, warning)
 
         actions = [
@@ -435,7 +380,7 @@ class FuturisticArrayLesson(VoiceoverScene):
         title = self._title("Can you predict the access?")
         lane = self._array_cells([12, 18, 21, 15], scale=1.0).shift(UP * 0.35)
         question = self._glass_card("scores[3] = ?      loop bound: i < ?", color=GOLD, width=6.6, height=0.9, font_size=25).shift(DOWN * 1.35)
-        countdown = Text("3", font=FONT, font_size=54, color=VIOLET, weight=BOLD).to_edge(RIGHT, buff=1.0).shift(DOWN * 1.3)
+        countdown = Text("3", font=self.fonts.sans, font_size=54, color=VIOLET, weight=BOLD).to_edge(RIGHT, buff=1.0).shift(DOWN * 1.3)
         answer = self._glass_card("scores[3] = 15      and      i < 4", color=MINT, width=6.6, height=0.9, font_size=25).move_to(question)
         answer.set_opacity(0)
         highlight = RoundedRectangle(width=1.6, height=1.5, corner_radius=0.2, color=MINT, stroke_width=4).move_to(lane[3])
@@ -445,7 +390,7 @@ class FuturisticArrayLesson(VoiceoverScene):
         def think(duration: float) -> None:
             self.play(FadeIn(countdown), run_time=min(0.4, duration))
             for number in [3, 2, 1]:
-                countdown.become(Text(str(number), font=FONT, font_size=54, color=VIOLET, weight=BOLD).move_to(countdown))
+                countdown.become(Text(str(number), font=self.fonts.sans, font_size=54, color=VIOLET, weight=BOLD).move_to(countdown))
                 self.play(countdown.animate.scale(1.12), run_time=0.35, rate_func=there_and_back)
                 self.wait(0.45)
             self.play(FadeOut(countdown), run_time=0.3)
@@ -466,7 +411,7 @@ class FuturisticArrayLesson(VoiceoverScene):
         title = self._title("One picture to remember it all")
         core = VGroup(
             Circle(radius=1.0, color=CYAN, stroke_width=3, fill_color=PANEL_2, fill_opacity=0.96),
-            Text("ARRAY", font=FONT, font_size=28, color=SOFT_WHITE, weight=BOLD),
+            Text("ARRAY", font=self.fonts.sans, font_size=28, color=SOFT_WHITE, weight=BOLD),
         )
         nodes = VGroup(
             self._glass_card("fixed size", color=CYAN, width=2.15),
@@ -495,9 +440,9 @@ class FuturisticArrayLesson(VoiceoverScene):
         self._narrate("scene_09_summary", actions)
         self._clear(group)
 
-        end = Text("YOU CAN SEE THE MEMORY NOW", font=FONT, font_size=37, color=SOFT_WHITE, weight=BOLD)
+        end = Text("YOU CAN SEE THE MEMORY NOW", font=self.fonts.sans, font_size=37, color=SOFT_WHITE, weight=BOLD)
         end.set_color_by_gradient(CYAN, ELECTRIC, VIOLET)
-        sub = Text("Declare  •  Access  •  Traverse safely", font=FONT, font_size=23, color=MUTED)
+        sub = Text("Declare  •  Access  •  Traverse safely", font=self.fonts.sans, font_size=23, color=MUTED)
         next_step = self._glass_card("NEXT SIGNAL  →  std::array", color=MINT, width=4.1, height=0.72, font_size=20)
         outro = VGroup(end, sub, next_step).arrange(DOWN, buff=0.32)
         beam = Line(LEFT * 3.4, RIGHT * 3.4, color=CYAN, stroke_width=2, stroke_opacity=0.6).next_to(outro, DOWN, buff=0.5)
