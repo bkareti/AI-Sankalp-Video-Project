@@ -258,7 +258,7 @@
         "energy": "Medium",
         "modulation": "Slightly firmer on the error name",
         "emphasis_words": [
-          "IndentationError: expected an indented block",
+          "IndentationError",
           "four spaces"
         ],
         "pronunciation_notes": [],
@@ -635,7 +635,7 @@
       "energy": "Medium",
       "modulation": "Slightly firmer on the error name",
       "emphasis_words": [
-        "IndentationError: expected an indented block",
+        "IndentationError",
         "four spaces"
       ],
       "pronunciation_notes": [],

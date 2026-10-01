@@ -66,12 +66,15 @@ def load_package(path: Path) -> Dict[str, Any]:
 
 
 def is_lesson_package(data: Any) -> bool:
-    """A reduced config never has `scenes` or `generator_compatibility`.
+    """`generator_compatibility`, or `scenes` together with `slug`, marks a package.
 
-    Either key marks a package, so a package missing the other one still gets
-    package validation (and a "generator_compatibility: is required" message).
+    A package missing one of those keys still gets package validation (and a
+    "... is required" message), while a reduced config with a stray `scenes`
+    note is not mistaken for a package.
     """
-    return isinstance(data, dict) and ("scenes" in data or "generator_compatibility" in data)
+    if not isinstance(data, dict):
+        return False
+    return "generator_compatibility" in data or ("scenes" in data and "slug" in data)
 
 
 def _ids(items: Any) -> List[Any]:

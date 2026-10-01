@@ -58,6 +58,8 @@ class TrackedPackageTests(unittest.TestCase):
     def test_is_lesson_package(self):
         self.assertTrue(is_lesson_package(load(ARRAYS)))
         self.assertFalse(is_lesson_package(load(ROOT / "examples" / "python_for_loops.json")))
+        reduced_with_note = dict(load(ROOT / "examples" / "python_for_loops.json"), scenes=[])
+        self.assertFalse(is_lesson_package(reduced_with_note))
 
     def test_shared_defs_match_reduced_schema(self):
         reduced = load_schema("lesson.schema.json")["$defs"]

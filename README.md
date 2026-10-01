@@ -166,7 +166,7 @@ python app.py generate --config lessons/sql_joins.yaml --render --output-dir out
 | `voiceover` | no | `true`, `false`, or an object (see below). Defaults to gTTS narration. |
 | `visual_template` | no | `standard` (default) or `futuristic_array`. |
 
-Unknown keys are ignored. Text fields that contain numbers are converted to text; an empty (null) value counts as missing. `provider` and `visual_template` are case-insensitive. An empty `rate` or `pitch` falls back to its default.
+Unknown keys are ignored, except `generator_compatibility` (or `scenes` with `slug`), which marks the file as a rich lesson package. Text fields that contain numbers are converted to text; an empty (null) value counts as missing. `provider` and `visual_template` are case-insensitive. An empty `rate` or `pitch` falls back to its default.
 
 ### Visual templates
 
