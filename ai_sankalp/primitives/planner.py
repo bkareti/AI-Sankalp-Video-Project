@@ -40,6 +40,11 @@ def split_sentences(text: str) -> List[str]:
     return [piece.strip() for piece in SENTENCE_PATTERN.findall(text or "") if piece.strip()]
 
 
+def _narrated_sentences(voiceover: str) -> List[str]:
+    """Sentences to narrate; text without sentence breaks counts as one sentence."""
+    return split_sentences(voiceover) or ([voiceover.strip()] if voiceover.strip() else [])
+
+
 def assign_beats(sentence_count: int, beat_count: int) -> List[List[int]]:
     """Map beats onto narrated sentences.
 
@@ -75,8 +80,10 @@ def _scene_visual_specs(scene: Dict[str, Any], package: Dict[str, Any], where: s
 
 
 def _code_example_issue(spec: Dict[str, Any], scene: Dict[str, Any], package: Dict[str, Any]) -> str:
-    ids = {example.get("id") for example in package.get("code_examples") or [] if isinstance(example, dict)}
-    wanted = spec.get("code_example_id") or (scene.get("code_example_ids") or [None])[0]
+    examples = package.get("code_examples")
+    ids = {example.get("id") for example in examples if isinstance(example, dict)} if isinstance(examples, list) else set()
+    scene_ids = scene.get("code_example_ids")
+    wanted = spec.get("code_example_id") or (scene_ids[0] if isinstance(scene_ids, list) and scene_ids else None)
     if wanted is None:
         return "" if ids else "code_walkthrough needs a code example, but the package has none"
     return "" if wanted in ids else f"code_example_id '{wanted}' does not match any code_examples[].id"
@@ -99,7 +106,7 @@ def plan_scene(scene: Dict[str, Any], index: int, package: Dict[str, Any], issue
         scene_id=str(scene.get("id", f"scene_{index + 1:02d}")),
         type=str(scene.get("type", "")),
         visuals=visuals,
-        sentences=split_sentences(str(scene.get("voiceover", ""))),
+        sentences=_narrated_sentences(str(scene.get("voiceover", ""))),
     )
 
 

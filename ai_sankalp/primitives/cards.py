@@ -148,9 +148,11 @@ def concept_map(spec: Spec, ctx: PrimitiveContext) -> BuiltVisual:
         node.move_to(RIGHT * x + UP * y)
     links = VGroup(*[
         Line(core.get_center(), node.get_center(), color=node[0].get_stroke_color(), stroke_width=2, stroke_opacity=0.6)
-        .set_z_index(-1)
         for node in nodes
     ])
+    # Links stay behind the core and nodes but in front of any panel (z 0).
+    core.set_z_index(1)
+    nodes.set_z_index(1)
 
     beats = [lambda scene, d: play(scene, with_header(ctx, [GrowFromCenter(core)]), d)]
     for index in range(len(nodes)):

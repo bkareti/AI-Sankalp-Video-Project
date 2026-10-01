@@ -15,14 +15,15 @@ code. Every primitive takes its text and values from JSON, uses the brand kit
 A package scene visual (`scenes[].visuals[]`) accepts these common keys:
 
 - `type` (required): the primitive name.
-- `label`: small eyebrow text, such as `"02 / MENTAL MODEL"`. Defaults to the scene number and type.
+- `label`: small eyebrow text, such as `"02 / MENTAL MODEL"`. Defaults to the scene's 0-based position and its type, so the intro is `00` and the first content scene is `01`.
 - `title`: the slide heading. Defaults to the scene title.
 - `timing`:
   - `"narrated"` (default) spreads the primitive's beats across the scene's narration, one beat per sentence.
   - `"after_narration"` plays the beats after the narration at 0.7 s each.
 
 When a primitive has more beats than the narration has sentences, the extra beats
-share the last sentence, so no animation is dropped. Narration sentences
+share the last sentence, so no animation is dropped. Narration without sentence
+punctuation counts as one sentence. Narration sentences
 without a beat hold the frame with a slow ambient motion.
 
 ## Catalog

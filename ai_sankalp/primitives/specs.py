@@ -203,6 +203,8 @@ def _token_breakdown(raw: Spec, problems: Problems) -> Spec:
             "role": _text(token["role"], f"tokens[{index}].role", problems, 20),
         })
     values = _optional(raw, "values", _values, problems)
+    if raw.get("highlight_index") is not None and not values:
+        problems.append("highlight_index needs values to highlight")
     return {
         "tokens": tokens,
         "code_line": _text(raw.get("code_line"), "code_line", problems),
@@ -402,7 +404,8 @@ def scene_label(scene: Dict[str, Any], number: int) -> str:
 def default_visual_for_scene(scene: Dict[str, Any], package: Dict[str, Any]) -> Spec:
     """A sensible primitive for a scene that does not list explicit visuals."""
     kind = scene.get("type")
-    texts = [_clip(item, ITEM_MAX) for item in scene.get("on_screen_text") or [] if str(item).strip()]
+    raw_texts = scene.get("on_screen_text")
+    texts = [_clip(item, ITEM_MAX) for item in raw_texts if str(item).strip()] if isinstance(raw_texts, list) else []
     title = _clip(scene.get("title") or package.get("title", ""), TITLE_MAX)
     if kind == "intro":
         spec: Spec = {
@@ -418,12 +421,12 @@ def default_visual_for_scene(scene: Dict[str, Any], package: Dict[str, Any]) -> 
         if len(texts) > 1:
             spec["subtitle"] = texts[1]
         return spec
-    if kind == "code_walkthrough" and (scene.get("code_example_ids") or package.get("code_examples")):
+    if kind == "code_walkthrough" and (scene.get("code_example_ids") or isinstance(package.get("code_examples"), list) and package["code_examples"]):
         return {"type": "code_walkthrough", "title": title}
-    if kind == "summary" and len(texts) >= 2:
+    if kind == "summary" and len(texts) >= 2 and all(len(item) <= CELL_MAX for item in texts[:4]):
         return {
             "type": "concept_map", "title": title,
             "center": _clip(package.get("topic", "Recap"), 20),
-            "nodes": [_clip(item, CELL_MAX) for item in texts[:4]],
+            "nodes": texts[:4],
         }
     return {"type": "bullet_card", "title": title, "bullets": texts[:5] or [title]}

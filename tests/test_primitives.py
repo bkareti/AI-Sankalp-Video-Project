@@ -48,7 +48,7 @@ class FlagshipDataDrivenTests(unittest.TestCase):
         sources = [ROOT / "ai_sankalp" / "futuristic_array_scene.py"]
         sources += sorted((ROOT / "ai_sankalp" / "primitives").glob("*.py"))
         whole = r"(?<![\d.]){}(?![\d.])"  # a whole number, not part of a decimal like 0.88
-        banned = [whole.format(70), whole.format(85), whole.format(88), r"\bmarks\b", r"\bscores\b", r"std::array",
+        banned = [whole.format(70), whole.format(85), whole.format(90), whole.format(75), whole.format(88), r"\bmarks\b", r"\bscores\b", r"std::array",
                   r"ARRAYS", r"MEMORY", r"WHY ARRAYS", r"OUTPUT STREAM", r"UNDEFINED", r"\b4096\b"]
         for path in sources:
             source = path.read_text(encoding="utf-8")
@@ -127,8 +127,46 @@ class PlannerTests(unittest.TestCase):
         self.assertIn("scenes[5].visuals[0]: values must have 1 to 8 items", text)
         self.assertIn("scenes[7].visuals[0]: highlight_index must be between 0 and 3", text)
         self.assertIn("scenes[2].visuals[1]: type must be one of", text)
+        # validate_package reports the unknown type through the schema enum, then
+        # plan issues (with field paths) once the schema passes.
+        self.assertIn("scenes[2].visuals[1].type", {issue.path for issue in validate_package(package)})
+        package["scenes"][2]["visuals"].pop()
         paths = {issue.path for issue in validate_package(package)}
         self.assertIn("scenes[5].visuals[0]", paths)
+        self.assertIn("scenes[7].visuals[0]", paths)
+
+    def test_malformed_packages_report_issues_instead_of_raising(self):
+        cases = {
+            "on_screen_text not a list": lambda p: (p["scenes"][1].pop("visuals"), p["scenes"][1].update(on_screen_text=5)),
+            "code_examples not a list": lambda p: p.update(code_examples=5),
+            "code_example_ids not a list": lambda p: (p["scenes"][4].pop("visuals"), p["scenes"][4].update(code_example_ids=7)),
+        }
+        for name, mutate in cases.items():
+            with self.subTest(case=name):
+                package = load(ARRAYS)
+                mutate(package)
+                issues = validate_package(package)
+                self.assertTrue(issues)
+                self.assertTrue(any("must be of type" in issue.message for issue in issues), [str(i) for i in issues])
+
+    def test_long_summary_lines_fall_back_to_bullet_card(self):
+        scene = {"type": "summary", "title": "Recap",
+                 "on_screen_text": ["Variable changes each pass", "range: start in, stop out"]}
+        spec = specs.default_visual_for_scene(scene, {"topic": "Loops"})
+        self.assertEqual("bullet_card", spec["type"])
+        self.assertEqual(scene["on_screen_text"], spec["bullets"])
+
+    def test_highlight_index_requires_values(self):
+        problems = specs.validate_visual({
+            "type": "token_breakdown", "tokens": [{"text": "a", "role": "b"}, {"text": "c", "role": "d"}],
+            "code_line": "a c", "highlight_index": 5}, "scene")
+        self.assertIn("highlight_index needs values to highlight", problems)
+
+    def test_voiceover_without_sentence_breaks_is_one_sentence(self):
+        package = load(ARRAYS)
+        package["scenes"][0]["voiceover"] = "..."
+        package["voiceover_segments"][0]["text"] = "..."
+        self.assertEqual(["..."], plan_lesson(package)[0].sentences)
 
     def test_unknown_code_example_is_reported(self):
         package = load(ARRAYS)
