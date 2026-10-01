@@ -235,6 +235,9 @@ you supply.
 | `table` | `columns`: 1 to 4 headings; `rows`: 1 to 6 rows with one cell per column. |
 
 Every visual accepts an optional `title` (up to 48 characters) shown above it.
+Text limits keep visuals readable on a phone: flow and step items up to 60
+characters, compare items up to 40, and table cells up to 48 divided by the
+number of columns (24 with two columns, 12 with four).
 Invalid visuals fail when the config is loaded, for example
 `section 2 visual: items must have 2 to 5 items (got 6)`.
 `examples/python_for_loops.json` shows a full-width section, a `flow`, and a
