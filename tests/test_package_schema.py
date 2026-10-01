@@ -111,6 +111,20 @@ class InvalidPackageTests(unittest.TestCase):
         self.assert_issue(package, "branding.logo_asset_id", "does not match any assets[].id")
         self.assert_issue(package, "assets[0].source_strategy", "must be one of")
 
+    def test_errors_inside_generator_compatibility_name_the_field(self):
+        package = load(ARRAYS)
+        package["generator_compatibility"]["voiceover"]["provider"] = "polly"
+        package["generator_compatibility"]["sections"][1]["title"] = ""
+        self.assert_issue(package, "generator_compatibility.voiceover.provider", "must be one of")
+        self.assert_issue(package, "generator_compatibility.sections[1].title", "at least 1 character")
+        self.assertFalse([i for i in validate_package(package) if "must be of type" in i.message])
+
+    def test_package_missing_generator_compatibility_is_still_a_package(self):
+        package = load(ARRAYS)
+        del package["generator_compatibility"]
+        self.assertTrue(is_lesson_package(package))
+        self.assert_issue(package, "generator_compatibility", "is required")
+
     def test_ensure_valid_package_lists_paths(self):
         package = load(ARRAYS)
         del package["scenes"][3]["voiceover"]

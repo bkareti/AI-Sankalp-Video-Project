@@ -1,3 +1,4 @@
+import importlib.util
 import unittest
 
 from ai_sankalp.schema_validation import SchemaError, SchemaIssue, validate
@@ -66,6 +67,17 @@ class KeywordTests(unittest.TestCase):
         all_of = {"allOf": [{"required": ["a"]}, {"required": ["b"]}]}
         self.assertEqual(["a: is required", "b: is required"], messages({}, all_of))
 
+    def test_nested_error_in_one_of_reports_the_real_field(self):
+        schema = {"oneOf": [
+            {"type": "boolean"},
+            {"type": "object", "properties": {"provider": {"enum": ["gtts", "edge"]}}},
+        ]}
+        self.assertEqual(['provider: must be one of: "gtts", "edge"'], messages({"provider": "polly"}, schema))
+
+    def test_all_type_mismatches_merge_into_one_message(self):
+        schema = {"oneOf": [{"type": "boolean"}, {"type": "null"}, {"type": "object"}]}
+        self.assertEqual(["(root): must be of type boolean or null or object"], messages(5, schema))
+
     def test_local_ref(self):
         schema = {"$defs": {"name": {"type": "string"}}, "properties": {"n": {"$ref": "#/$defs/name"}}}
         self.assertEqual(["n: must be of type string"], messages({"n": 1}, schema))
@@ -80,7 +92,7 @@ class KeywordTests(unittest.TestCase):
         self.assertEqual("a.b: bad", str(SchemaIssue("a.b", "bad")))
 
 
-@unittest.skipUnless(__import__("importlib").util.find_spec("jsonschema"), "jsonschema not installed")
+@unittest.skipUnless(importlib.util.find_spec("jsonschema"), "jsonschema not installed")
 class ReferenceValidatorTests(unittest.TestCase):
     def test_matches_reference_jsonschema(self):
         import json

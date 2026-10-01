@@ -58,7 +58,7 @@ def load_package(path: Path) -> Dict[str, Any]:
         raise LessonValidationError(f"lesson package not found: {display_path(path)}")
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
         raise LessonValidationError(f"could not read lesson package {display_path(path)}: {exc}") from exc
     if not isinstance(data, dict):
         raise LessonValidationError(f"lesson package {display_path(path)} must be a JSON object")
@@ -66,7 +66,12 @@ def load_package(path: Path) -> Dict[str, Any]:
 
 
 def is_lesson_package(data: Any) -> bool:
-    return isinstance(data, dict) and "scenes" in data and "generator_compatibility" in data
+    """A reduced config never has `scenes` or `generator_compatibility`.
+
+    Either key marks a package, so a package missing the other one still gets
+    package validation (and a "generator_compatibility: is required" message).
+    """
+    return isinstance(data, dict) and ("scenes" in data or "generator_compatibility" in data)
 
 
 def _ids(items: Any) -> List[Any]:

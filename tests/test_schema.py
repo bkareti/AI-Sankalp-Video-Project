@@ -77,6 +77,10 @@ class SchemaModelAgreementTests(unittest.TestCase):
             "bad pitch": dict(VALID, voiceover={"provider": "edge", "pitch": "1"}),
             "unknown template": dict(VALID, visual_template="fancy"),
             "section without bullets": dict(VALID, sections=[{"title": "Empty"}]),
+            "empty explanation list": {**{k: v for k, v in VALID.items() if k != "sections"}, "explanation": []},
+            "blank explanation text": {**{k: v for k, v in VALID.items() if k != "sections"}, "explanation": "   "},
+            "null title": dict(VALID, title=None),
+            "null code": dict(VALID, code_example=None),
         }
         for name, data in cases.items():
             with self.subTest(case=name):

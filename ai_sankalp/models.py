@@ -22,6 +22,15 @@ def safe_slug(value: str, fallback: str = "lesson") -> str:
     return slug[:80] or fallback
 
 
+def _text_field(data: Dict[str, Any], *keys: str) -> str:
+    """Return the first present key as text; null (e.g. a blank YAML value) counts as missing."""
+    for key in keys:
+        value = data.get(key)
+        if value is not None:
+            return str(value)
+    return ""
+
+
 def scene_class_name(value: str) -> str:
     words = re.findall(r"[a-zA-Z0-9]+", value)
     name = "".join(word[:1].upper() + word[1:] for word in words) or "Lesson"
@@ -136,11 +145,11 @@ class LessonConfig:
         if not isinstance(data, dict):
             raise LessonValidationError("lesson config must be a JSON/YAML object")
 
-        topic = str(data.get("topic", "")).strip()
-        title = str(data.get("title", data.get("lesson_title", ""))).strip()
-        language = str(data.get("language", data.get("programming_language", ""))).strip()
-        code = str(data.get("code_example", data.get("code", ""))).rstrip()
-        output_name = str(data.get("output_video_name", data.get("output", ""))).strip()
+        topic = _text_field(data, "topic").strip()
+        title = _text_field(data, "title", "lesson_title").strip()
+        language = _text_field(data, "language", "programming_language").strip()
+        code = _text_field(data, "code_example", "code").rstrip()
+        output_name = _text_field(data, "output_video_name", "output").strip()
 
         raw_sections = data.get("sections")
         if raw_sections is None:

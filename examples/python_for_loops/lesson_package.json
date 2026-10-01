@@ -251,14 +251,14 @@
       "type": "common_mistake",
       "title": "The Indentation Mistake",
       "purpose": "Show how missing indentation breaks the loop body.",
-      "voiceover": "A common mistake is forgetting to indent the body. If the print line is not indented, Python raises an IndentationError, because the loop header expects an indented block. Always indent the body by four spaces.",
+      "voiceover": "A common mistake is forgetting to indent the loop body. If no line under the for header is indented, Python raises an IndentationError, because the header expects an indented block. Always indent the body, usually by four spaces.",
       "voice_delivery": {
         "pace_wpm": 128,
         "tone": "Cautionary",
         "energy": "Medium",
         "modulation": "Slightly firmer on the error name",
         "emphasis_words": [
-          "IndentationError",
+          "IndentationError: expected an indented block",
           "four spaces"
         ],
         "pronunciation_notes": [],
@@ -266,16 +266,16 @@
         "pause_after_seconds": 0.5
       },
       "on_screen_text": [
-        "Wrong: print not indented",
-        "IndentationError",
-        "Correct: indent by 4 spaces"
+        "Wrong: nothing indented under for",
+        "IndentationError: expected an indented block",
+        "Correct: indent the body by 4 spaces"
       ],
       "visual_objects": [
         "asset_branding",
         "asset_error_card"
       ],
       "animation_notes": [
-        "Show the unindented code with an error badge, then fix the indentation."
+        "Show a for header followed by an unindented print(n) with an error badge, then indent it."
       ],
       "code_example_ids": [],
       "timing_seconds": 18,
@@ -402,7 +402,7 @@
       "output_is_representative": false,
       "beginner_mistakes": [
         "Expecting range(1, 6) to include 6; the stop value is excluded.",
-        "Forgetting to indent the body, which raises IndentationError.",
+        "Leaving the loop body unindented; with no indented line under the header, Python raises IndentationError.",
         "Forgetting the colon at the end of the for header."
       ],
       "practice_variation": "Change the loop to range(2, 5) and predict the printed numbers."
@@ -628,14 +628,14 @@
     {
       "id": "vo_07_mistake",
       "scene_id": "scene_07_mistake",
-      "text": "A common mistake is forgetting to indent the body. If the print line is not indented, Python raises an IndentationError, because the loop header expects an indented block. Always indent the body by four spaces.",
+      "text": "A common mistake is forgetting to indent the loop body. If no line under the for header is indented, Python raises an IndentationError, because the header expects an indented block. Always indent the body, usually by four spaces.",
       "estimated_seconds": 18,
       "pace_wpm": 128,
       "tone": "Cautionary",
       "energy": "Medium",
       "modulation": "Slightly firmer on the error name",
       "emphasis_words": [
-        "IndentationError",
+        "IndentationError: expected an indented block",
         "four spaces"
       ],
       "pronunciation_notes": [],

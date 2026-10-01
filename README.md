@@ -143,6 +143,14 @@ Copy `examples/python_for_loops.json` and change its values. The main format is:
 
 `explanation` may be used instead of `sections`. It accepts plain text or a list of bullet strings. JSON and YAML are supported; the complete JSON schema is in `templates/lesson.schema.json`.
 
+Generate or render any config:
+
+```bash
+python app.py generate --config lessons/sql_joins.json
+python app.py generate --config lessons/sql_joins.json --render --quality low
+python app.py generate --config lessons/sql_joins.yaml --render --output-dir output
+```
+
 ### Lesson config fields
 
 | Field | Required | Notes |
@@ -158,7 +166,7 @@ Copy `examples/python_for_loops.json` and change its values. The main format is:
 | `voiceover` | no | `true`, `false`, or an object (see below). Defaults to gTTS narration. |
 | `visual_template` | no | `standard` (default) or `futuristic_array`. |
 
-Unknown keys are ignored. Text fields that contain numbers are converted to text.
+Unknown keys are ignored. Text fields that contain numbers are converted to text; an empty (null) value counts as missing. `provider` and `visual_template` are case-insensitive. An empty `rate` or `pitch` falls back to its default.
 
 ### Visual templates
 
@@ -217,17 +225,14 @@ python app.py generate --config examples/arrays_in_cpp/lesson_package.json
 python app.py generate --config examples/python_for_loops/lesson_package.json --render --no-voiceover
 ```
 
+When you pass a package path with `--config`, the generated scene is pinned to
+that file. Otherwise (a reduced config with `futuristic_array`), the scene
+looks up the package by slug at render time, preferring
+`generated/packages/<slug>/lesson_package.json` over `examples/<slug>/`.
+
 Invalid packages fail with field paths such as
 `scenes[3].voiceover: is required` or
 `voiceover_segments[2].scene_id: 'scene_99' does not match any scenes[].id`.
-
-Generate or render any config:
-
-```bash
-python app.py generate --config lessons/sql_joins.json
-python app.py generate --config lessons/sql_joins.json --render --quality low
-python app.py generate --config lessons/sql_joins.yaml --render --output-dir output
-```
 
 For a prompt-based terminal workflow:
 
@@ -250,7 +255,7 @@ Every generation, render start, success, and failure is appended to `generated/h
 python app.py check
 ```
 
-If a narrated render fails, first confirm that `https://translate.google.com` is reachable. To keep working offline, set `"voiceover": false` or use `--no-voiceover` for the sample.
+If a narrated render fails, first confirm that `https://translate.google.com` is reachable. To keep working offline, set `"voiceover": false` or use `--no-voiceover` with `sample` or `generate`.
 
 ## Direct Manim rendering
 

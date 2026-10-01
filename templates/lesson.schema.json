@@ -21,12 +21,16 @@
     "explanation": {
       "description": "Used when sections is absent: blank-line separated text blocks or a list of sections.",
       "type": ["string", "array"],
+      "pattern": "\\S",
+      "minItems": 1,
       "items": {"$ref": "#/$defs/section"}
     },
     "script": {
       "deprecated": true,
       "description": "Alias of explanation.",
       "type": ["string", "array"],
+      "pattern": "\\S",
+      "minItems": 1,
       "items": {"$ref": "#/$defs/section"}
     },
     "code_example": {"$ref": "#/$defs/text"},

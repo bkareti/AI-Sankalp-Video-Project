@@ -149,15 +149,45 @@ def _validate(instance: Any, schema: Any, root: Dict[str, Any], path: str) -> Li
     if "anyOf" in schema:
         branches = [_validate(instance, sub, root, path) for sub in schema["anyOf"]]
         if all(branches):
-            issues.extend(min(branches, key=len))
+            issues.extend(_closest_branch(branches, path))
     if "oneOf" in schema:
         branches = [_validate(instance, sub, root, path) for sub in schema["oneOf"]]
         matches = sum(1 for branch in branches if not branch)
         if matches == 0:
-            issues.extend(min(branches, key=len))
+            issues.extend(_closest_branch(branches, path))
         elif matches > 1:
             issues.append(SchemaIssue(path, "matches more than one allowed form"))
     return issues
+
+
+TYPE_PREFIX = "must be of type "
+
+
+def _is_type_mismatch(branch: List[SchemaIssue], path: str) -> bool:
+    return len(branch) == 1 and branch[0].path == path and branch[0].message.startswith(TYPE_PREFIX)
+
+
+def _depth(issue: SchemaIssue) -> int:
+    return issue.path.count(".") + issue.path.count("[") + (1 if issue.path else 0)
+
+
+def _closest_branch(branches: List[List[SchemaIssue]], path: str) -> List[SchemaIssue]:
+    """Pick the failing branch that best explains the error.
+
+    A branch that failed only because the value has a different type is the
+    least useful report; a branch whose value had the right shape points at
+    the real field. When every branch is a type mismatch, merge them into one
+    message listing all accepted types.
+    """
+    shaped = [branch for branch in branches if not _is_type_mismatch(branch, path)]
+    if not shaped:
+        names: List[str] = []
+        for branch in branches:
+            for name in branch[0].message[len(TYPE_PREFIX):].split(" or "):
+                if name not in names:
+                    names.append(name)
+        return [SchemaIssue(path, TYPE_PREFIX + " or ".join(names))]
+    return min(shaped, key=lambda branch: (len(branch), -max(_depth(issue) for issue in branch)))
 
 
 def validate(instance: Any, schema: Dict[str, Any]) -> List[SchemaIssue]:
