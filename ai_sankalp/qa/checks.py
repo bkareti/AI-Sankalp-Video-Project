@@ -191,7 +191,8 @@ def final_video(ctx: QAContext) -> CheckResult:
 def captions(ctx: QAContext) -> CheckResult:
     title = "Captions exist and are readable"
     srt_path, vtt_path = caption_paths(ctx.video_dir, ctx.slug)
-    fix = f"Render again (captions are written next to the MP4), or run: python app.py captions --config {ctx.config_arg}"
+    fix = (f"Render again (captions are written next to the MP4), or run: python app.py captions --config {ctx.config_arg}"
+           " (add --force to replace render-timed captions)")
     missing = [ctx.rel(path) for path in (srt_path, vtt_path) if not path.exists()]
     if missing:
         return CheckResult("captions", title, FAIL, "Caption file(s) missing: " + ", ".join(missing), fix)
