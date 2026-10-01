@@ -76,7 +76,7 @@
       "type": "object",
       "required": ["type"],
       "properties": {
-        "type": {"type": "string", "enum": ["flow", "steps", "compare", "table"]},
+        "type": {"type": "string", "enum": ["flow", "steps", "compare", "table", "array_lane", "loop_trace", "concept_map"]},
         "title": {"type": "string", "maxLength": 48}
       }
     },

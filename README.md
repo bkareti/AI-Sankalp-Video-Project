@@ -19,7 +19,8 @@ examples/python_for_loops/     Rich package for the Python sample
 examples/arrays_in_cpp/        Flagship C++ arrays sample (reduced config + rich package)
 assets/ai_sankalp_logo.svg
 assets/fonts/                  Optional bundled fonts (see its README)
-docs/                          Brand checklist and other guides
+docs/                          Brand checklist, template and primitive guide
+scenes/primitive_smoke.py      One smoke render per primitive fixture (examples/primitives/)
 generated/
   configs/                     Normalized lesson configs
   scenes/                      Small generated Manim entry points
@@ -177,12 +178,14 @@ Unknown keys are ignored, except `generator_compatibility` (or `scenes` with `sl
 | Template | Use it for | Needs |
 |---|---|---|
 | `standard` | Any topic and language. Bullet slides, a code walkthrough, recap and outro, all from the config. | Only the reduced config. |
-| `futuristic_array` | The flagship, diagram-first C++ arrays lesson. | A rich lesson package with the ten flagship scene ids, and a C++ array topic. |
+| `futuristic_array` | The flagship, diagram-first style. Draws every package scene with reusable primitives. | A rich lesson package. Scenes pick primitives with `visuals` or get a default by scene type. |
 
-`futuristic_array` currently supports only C++ array lessons. The generator
-checks this before writing any file or starting Manim: it fails early with a
-clear message when the package is missing, invalid, missing a required scene
-id, or the lesson is not a C++ array lesson. Use `standard` for everything else.
+`futuristic_array` is data-driven: the C++ arrays video is produced entirely
+from `examples/arrays_in_cpp/lesson_package.json`, and any topic works when its
+package scenes resolve to valid primitives. The generator checks this before
+writing any file or starting Manim, and fails early with a field path when the
+package is missing or invalid. See `docs/templates.md` for the primitive
+catalog, defaults by scene type, and smoke renders.
 
 ### Voiceover providers (gTTS vs Edge TTS)
 
@@ -233,6 +236,7 @@ you supply.
 | `steps` | `items`: 2 to 5 numbered steps. |
 | `compare` | `left` and `right`: each `{"title": ..., "items": [1 to 4 lines]}`. |
 | `table` | `columns`: 1 to 4 headings; `rows`: 1 to 6 rows with one cell per column. |
+| `array_lane`, `loop_trace`, `concept_map` | Animated primitives; see `docs/templates.md`. |
 
 Every visual accepts an optional `title` (up to 48 characters) shown above it.
 Text limits keep visuals readable on a phone: flow and step items up to 60
@@ -240,8 +244,8 @@ characters, compare items up to 40, and table cells up to 48 divided by the
 number of columns (24 with two columns, 12 with four).
 Invalid visuals fail when the config is loaded, for example
 `section 2 visual: items must have 2 to 5 items (got 6)`.
-`examples/python_for_loops.json` shows a full-width section, a `flow`, and a
-`table`.
+`examples/python_for_loops.json` shows a full-width section, a `loop_trace`,
+and a `table`.
 
 ## Brand kit and fonts
 

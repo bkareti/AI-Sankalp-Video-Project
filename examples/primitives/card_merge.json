@@ -1,0 +1,13 @@
+{
+  "narration": "Three separate variables hold three scores. That is hard to manage. A list keeps them together. One name, three values. Much better.",
+  "language": "Python",
+  "visual": {
+    "type": "card_merge",
+    "label": "01 / WHY LISTS",
+    "title": "Many names become one list",
+    "cards": ["a = 3", "b = 1", "c = 2"],
+    "callout": "3 names  →  1 list",
+    "target_name": "scores",
+    "target_values": ["3", "1", "2"]
+  }
+}

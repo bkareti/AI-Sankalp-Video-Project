@@ -1,0 +1,12 @@
+{
+  "narration": "A list stores values in order. Each value has an index. Indexes start at zero. The values sit next to each other.",
+  "language": "Python",
+  "visual": {
+    "type": "array_lane",
+    "label": "02 / MENTAL MODEL",
+    "title": "A list is an ordered lane",
+    "name": "scores",
+    "values": ["3", "1", "2"],
+    "chips": ["ordered", "zero-based"]
+  }
+}

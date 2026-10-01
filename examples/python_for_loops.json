@@ -19,14 +19,13 @@
         "After the body runs, Python moves to the next item."
       ],
       "visual": {
-        "type": "flow",
-        "title": "One pass of the loop",
-        "items": [
-          "Take the next item",
-          "Store it in the loop variable",
-          "Run the indented body",
-          "Move to the next item"
-        ]
+        "type": "loop_trace",
+        "title": "number takes each value from range(1, 6)",
+        "values": ["1", "2", "3", "4", "5"],
+        "variable": "number",
+        "variable_values": ["1", "2", "3", "4", "5"],
+        "outputs": ["1 1", "2 4", "3 9", "4 16", "5 25"],
+        "output_title": "PRINTED"
       }
     },
     {

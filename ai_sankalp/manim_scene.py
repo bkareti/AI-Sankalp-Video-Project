@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Tuple
 
 from manim import (
-    DOWN, LEFT, RIGHT, UP, Create, Dot, FadeIn, FadeOut, GrowFromCenter, Line, VGroup,
+    DOWN, LEFT, ORIGIN, RIGHT, UP, Create, Dot, FadeIn, FadeOut, GrowFromCenter, Line, VGroup,
 )
 from manim_voiceover import VoiceoverScene
 
@@ -13,7 +13,10 @@ from . import brand
 from .brand import BrandFonts, brand_fonts
 from .config_io import load_config
 from .models import LessonSection
-from .primitives.diagrams import build_section_visual
+from .primitives.base import Beat, PrimitiveContext
+from .primitives.diagrams import SECTION_BUILDERS, build_section_visual
+from .primitives.registry import build_visual
+from .primitives.runner import fit_into_box
 from .primitives.frame import add_brand_frame
 from .primitives.layout import code_block, fit, header, panel, text, wrap_text
 from .speech import build_speech_service
@@ -31,6 +34,7 @@ VISUAL_PANEL_WIDTH = 5.4
 CODE_MAX_WIDTH = 11.5
 CODE_MAX_HEIGHT = 4.0
 CODE_CENTER_Y = 0.05
+SECTION_BEAT = 0.45
 
 
 def section_layout(section: LessonSection) -> str:
@@ -47,6 +51,8 @@ class SlideParts:
     visual_panel: Optional[VGroup] = None
     visual_label: Optional[VGroup] = None
     visual: Optional[VGroup] = None
+    # Animated primitives reveal in beats; static diagrams fade in at once.
+    visual_beats: Optional[List[Beat]] = None
 
     @property
     def group(self) -> VGroup:
@@ -94,9 +100,20 @@ def build_section_slide(section: LessonSection, number: int, total: int, fonts: 
         visual_label = VGroup(fit(text(title, fonts, 15, color=brand.MUTED, bold=True), VISUAL_PANEL_WIDTH - 0.5))
         visual_label.move_to(visual_panel.get_top() + DOWN * 0.3)
         top_reserved = 0.6
-    visual = build_section_visual(section.visual, fonts, VISUAL_PANEL_WIDTH - 0.6, SLIDE_HEIGHT - top_reserved - 0.3)
+    width, height = VISUAL_PANEL_WIDTH - 0.6, SLIDE_HEIGHT - top_reserved - 0.3
+    beats = None
+    if section.visual["type"] in SECTION_BUILDERS:
+        visual = build_section_visual(section.visual, fonts, width, height)
+    else:
+        built = build_visual(section.visual, PrimitiveContext(fonts=fonts))
+        visual, beats = built.extent, built.beats
+        fit_into_box(visual, _box_around(ORIGIN, width, height), center=True)
     visual.move_to(visual_panel).shift(DOWN * (top_reserved - 0.3) / 2)
-    return SlideParts(layout, slide_header, bullet_panel, bullets, visual_panel, visual_label, visual)
+    return SlideParts(layout, slide_header, bullet_panel, bullets, visual_panel, visual_label, visual, beats)
+
+
+def _box_around(center, width: float, height: float) -> Tuple[float, float, float, float]:
+    return (center[0] - width / 2, center[0] + width / 2, center[1] - height / 2, center[1] + height / 2)
 
 
 class ConfigDrivenLesson(VoiceoverScene):
@@ -169,7 +186,10 @@ class ConfigDrivenLesson(VoiceoverScene):
                 panels.append(FadeIn(parts.visual_label))
             self.play(*panels, run_time=0.5)
             self.play(*[FadeIn(row, shift=RIGHT * 0.12) for row in parts.bullets], run_time=0.8)
-            if parts.visual is not None:
+            if parts.visual_beats:
+                for beat in parts.visual_beats:
+                    beat(self, SECTION_BEAT)
+            elif parts.visual is not None:
                 self.play(FadeIn(parts.visual, shift=UP * 0.1), run_time=0.8)
 
         self._narrate(narration, animate)

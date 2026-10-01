@@ -1,0 +1,10 @@
+{
+  "narration": "Thank you for learning with AI Sankalp. Next, try dictionaries.",
+  "language": "Python",
+  "visual": {
+    "type": "outro_card",
+    "heading": "KEEP LEARNING. KEEP BUILDING.",
+    "subtitle": "Lists  •  Indexes  •  Loops",
+    "next_step": "NEXT  →  dictionaries"
+  }
+}

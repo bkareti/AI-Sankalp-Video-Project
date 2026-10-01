@@ -1,0 +1,17 @@
+{
+  "narration": "Here is a declaration. int is the type. ages is the name. Three is the size. The braces hold the starting values. Together they form one line. The values land in the cells.",
+  "language": "Python",
+  "visual": {
+    "type": "token_breakdown",
+    "label": "03 / DECLARATION",
+    "title": "Read the declaration piece by piece",
+    "tokens": [
+      {"text": "int", "role": "type"},
+      {"text": "ages", "role": "name"},
+      {"text": "[3]", "role": "size"}
+    ],
+    "code_line": "int ages[3] = {18, 21, 19};",
+    "values": ["18", "21", "19"],
+    "highlight_index": 1
+  }
+}

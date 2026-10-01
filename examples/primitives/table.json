@@ -1,0 +1,11 @@
+{
+  "narration": "The table lists each value and its square.",
+  "language": "Python",
+  "visual": {
+    "type": "table",
+    "label": "14 / TABLE",
+    "title": "Values and squares",
+    "columns": ["n", "n * n"],
+    "rows": [["1", "1"], ["2", "4"], ["3", "9"]]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "narration": "To run a script, save it, open a terminal, and run python.",
+  "language": "Python",
+  "visual": {
+    "type": "steps",
+    "label": "12 / STEPS",
+    "title": "Run a Python script",
+    "items": ["Save the file", "Open a terminal", "Run python app.py"]
+  }
+}

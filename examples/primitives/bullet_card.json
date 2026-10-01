@@ -1,0 +1,14 @@
+{
+  "narration": "Three ideas to remember. Lists keep order. Indexes start at zero.",
+  "language": "Python",
+  "visual": {
+    "type": "bullet_card",
+    "label": "10 / NOTES",
+    "title": "Keep these in mind",
+    "bullets": [
+      "Lists keep their order.",
+      "Indexes start at zero.",
+      "len(values) is one past the last index."
+    ]
+  }
+}

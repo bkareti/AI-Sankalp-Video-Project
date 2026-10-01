@@ -139,6 +139,12 @@ def semantic_issues(package: Dict[str, Any]) -> List[SchemaIssue]:
             f"'{branding.get('logo_asset_id')}' does not match any assets[].id",
         ))
 
+    from .primitives.planner import lesson_plan_issues
+
+    for issue in lesson_plan_issues(package):
+        path, _, message = issue.partition(": ")
+        issues.append(SchemaIssue(path, message))
+
     compatibility = package.get("generator_compatibility")
     if isinstance(compatibility, dict) and "slug" in package:
         if compatibility.get("output_video_name") != package.get("slug"):

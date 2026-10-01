@@ -1,0 +1,14 @@
+{
+  "narration": "Compare the two loops. One reads past the end. The other stays in bounds.",
+  "language": "Python",
+  "visual": {
+    "type": "compare",
+    "label": "13 / COMPARE",
+    "title": "Two loop bounds",
+    "left": {
+      "title": "Wrong",
+      "items": ["i <= len(values)", "reads past the end"]
+    },
+    "right": {"title": "Right", "items": ["i < len(values)", "stays in bounds"]}
+  }
+}
