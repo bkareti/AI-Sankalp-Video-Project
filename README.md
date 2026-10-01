@@ -10,8 +10,10 @@ The video template includes an intro, lesson title, step-by-step explanation car
 app.py                         CLI and desktop-app entry point
 ai_sankalp/                    Models, generator, renderer, UI, Manim runtime
 templates/generated_scene.py.tmpl
-templates/lesson.schema.json   Reusable lesson format
+templates/lesson.schema.json   Reduced lesson config format
+templates/lesson_package.schema.json  Rich lesson package format
 examples/python_for_loops.json Working sample lesson
+examples/python_for_loops/     Rich package for the Python sample
 examples/arrays_in_cpp/        Flagship C++ arrays sample (reduced config + rich package)
 assets/ai_sankalp_logo.svg
 generated/
@@ -99,6 +101,8 @@ clean clone with no prior generation step:
 python app.py generate --config examples/arrays_in_cpp/config.json --render --quality low
 ```
 
+Add `--no-voiceover` to render it offline without narration.
+
 The final file is saved as `generated/videos/arrays_in_cpp.mp4`. At render
 time, the scene looks for a matching package under
 `generated/packages/arrays_in_cpp/lesson_package.json` first (useful while
@@ -138,6 +142,84 @@ Copy `examples/python_for_loops.json` and change its values. The main format is:
 ```
 
 `explanation` may be used instead of `sections`. It accepts plain text or a list of bullet strings. JSON and YAML are supported; the complete JSON schema is in `templates/lesson.schema.json`.
+
+### Lesson config fields
+
+| Field | Required | Notes |
+|---|---|---|
+| `topic` | yes | Short topic name shown on the intro card. |
+| `title` | yes | Lesson title. Older alias: `lesson_title`. |
+| `language` | yes | Programming language; also selects code highlighting. Older alias: `programming_language`. |
+| `sections` | yes, or `explanation` | List of `{title, bullets, narration?}`. Sections with more than four bullets are split into continued slides. A plain string becomes a one-bullet section. |
+| `explanation` | instead of `sections` | Blank-line separated text blocks, or a list of sections. Older alias: `script`. |
+| `code_example` | yes | Code shown in the walkthrough. Older alias: `code`. |
+| `summary` | no | Up to four recap lines; defaults to the first bullet of the first sections. |
+| `output_video_name` | yes | File name for the MP4 (made filesystem-safe). Older alias: `output`. |
+| `voiceover` | no | `true`, `false`, or an object (see below). Defaults to gTTS narration. |
+| `visual_template` | no | `standard` (default) or `futuristic_array`. |
+
+Unknown keys are ignored. Text fields that contain numbers are converted to text.
+
+### Visual templates
+
+| Template | Use it for | Needs |
+|---|---|---|
+| `standard` | Any topic and language. Bullet slides, a code walkthrough, recap and outro, all from the config. | Only the reduced config. |
+| `futuristic_array` | The flagship, diagram-first C++ arrays lesson. | A rich lesson package with the ten flagship scene ids, and a C++ array topic. |
+
+`futuristic_array` currently supports only C++ array lessons. The generator
+checks this before writing any file or starting Manim: it fails early with a
+clear message when the package is missing, invalid, missing a required scene
+id, or the lesson is not a C++ array lesson. Use `standard` for everything else.
+
+### Voiceover providers (gTTS vs Edge TTS)
+
+| Field | Provider | Default | Notes |
+|---|---|---|---|
+| `enabled` | both | `true` | `false` renders silently, with no network access. |
+| `provider` | both | `gtts` | `gtts` or `edge`. |
+| `speed` | both | `1.0` | Playback speed multiplier, 0.5 to 2.0. |
+| `language` | gTTS | `en` | gTTS language code. |
+| `tld` | gTTS | `com` | Google domain that sets the accent, e.g. `co.in` for Indian English. |
+| `voice` | Edge | `en-IN-NeerjaNeural` | Any Microsoft Edge neural voice name. |
+| `rate` | Edge | `+0%` | Signed percentage, e.g. `-4%`. |
+| `pitch` | Edge | `+0Hz` | Signed hertz, e.g. `+1Hz`. |
+| `human_delivery_notes` | none | | Informational only (used in lesson packages); ignored at render time. |
+
+- **gTTS** (Google Translate speech) is simple and free, but has no pitch or
+  emotion control. Audio is cached in `generated/audio/`.
+- **Edge TTS** uses Microsoft's neural voices, which sound more natural and
+  support `voice`, `rate` and `pitch`. The flagship C++ sample uses
+  `en-IN-NeerjaNeural` at `-4%` and `+1Hz`. Audio is cached in
+  `generated/audio_edge/`.
+- Both providers need internet access while rendering. Both templates honor
+  the selected provider. Add `--no-voiceover` to `generate` or `sample` to
+  render offline.
+
+## Rich lesson packages
+
+A lesson package (`examples/<slug>/lesson_package.json`) is the full source of
+truth for a lesson: scenes, narration, voice direction, code examples, assets,
+branding, and a `generator_compatibility` block that converts into the reduced
+config above. Its contract is `templates/lesson_package.schema.json`, plus
+cross-reference checks (scene ids, asset ids, code example ids, and
+`generator_compatibility.output_video_name` equal to `slug`).
+
+Tracked packages:
+
+- `examples/arrays_in_cpp/lesson_package.json` (flagship, `futuristic_array`)
+- `examples/python_for_loops/lesson_package.json` (`standard`)
+
+Pass a package straight to `generate`; it is detected, validated, and converted:
+
+```bash
+python app.py generate --config examples/arrays_in_cpp/lesson_package.json
+python app.py generate --config examples/python_for_loops/lesson_package.json --render --no-voiceover
+```
+
+Invalid packages fail with field paths such as
+`scenes[3].voiceover: is required` or
+`voiceover_segments[2].scene_id: 'scene_99' does not match any scenes[].id`.
 
 Generate or render any config:
 
@@ -193,8 +275,8 @@ manim -ql scenes/smoke_test.py SmokeTest
 
 The main extension points are deliberately separate:
 
-- Add a voice provider behind the speech-service setup in `ai_sankalp/manim_scene.py`.
-- Add new visual templates as runtime scene classes and select one from lesson config.
+- Add a voice provider in `ai_sankalp/speech.py` and the `provider` enum in both schemas.
+- Add a visual template as a runtime scene class registered in `ai_sankalp/template_registry.py` (routing and prerequisite checks), then update the schema enum and tests.
 - Add subtitles from Manim Voiceover's generated subcaptions.
 - Build a web UI over `LessonGenerator` and `ManimRenderer` without changing the lesson format.
 - Add batch generation by loading multiple configs and calling the same generator/renderer APIs.

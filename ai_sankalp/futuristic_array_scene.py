@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import json
 import re
 from pathlib import Path
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Optional
 
 from manim import (
     AnimationGroup, Arrow, BLUE, BOLD, Circle, Code, Create, DashedLine, Dot,
@@ -15,7 +14,8 @@ from manim import (
 from manim_voiceover import VoiceoverScene
 
 from .config_io import load_config
-from .edge_tts_service import EdgeTTSService
+from .package import load_package, resolve_package_path  # noqa: F401  (re-exported)
+from .speech import build_speech_service
 from .manim_scene import ACCENT, BG, CORAL, CYAN, GOLD, MINT, MUTED, PANEL, PANEL_2, SOFT_WHITE
 
 
@@ -25,47 +25,23 @@ VIOLET = "#9A7BFF"
 ELECTRIC = "#4C8DFF"
 
 
-def resolve_package_path(project_root: Path, slug: str) -> Path:
-    """Locate a lesson package JSON for `slug`, preferring generated output.
-
-    `generated/packages/*` is gitignored scratch output, so a clean clone has
-    nothing there. Tracked fixtures under `examples/<slug>/` keep the
-    flagship sample renderable without requiring a prior generation step.
-    """
-    generated_path = project_root / "generated" / "packages" / slug / "lesson_package.json"
-    if generated_path.exists():
-        return generated_path
-    example_path = project_root / "examples" / slug / "lesson_package.json"
-    if example_path.exists():
-        return example_path
-    raise FileNotFoundError(
-        f"No lesson package found for '{slug}'. Checked {generated_path} and {example_path}."
-    )
-
-
 class FuturisticArrayLesson(VoiceoverScene):
     """A cinematic, diagram-first C++ array lesson driven by the rich package."""
 
     LESSON_CONFIG_PATH: Path
+    LESSON_PACKAGE_PATH: Optional[Path] = None
 
     def construct(self) -> None:
         self.lesson = load_config(Path(self.LESSON_CONFIG_PATH))
         project_root = Path(__file__).resolve().parents[1]
-        package_path = resolve_package_path(project_root, self.lesson.slug)
-        package = json.loads(package_path.read_text(encoding="utf-8"))
+        package_path = self.LESSON_PACKAGE_PATH or resolve_package_path(project_root, self.lesson.slug)
+        package = load_package(package_path)
         self.script: Dict[str, str] = {scene["id"]: scene["voiceover"] for scene in package["scenes"]}
 
         self.camera.background_color = BG
-        audio_dir = project_root / "generated" / "audio_edge"
         if self.lesson.voiceover.enabled:
             self.set_speech_service(
-                EdgeTTSService(
-                    voice=self.lesson.voiceover.voice,
-                    rate=self.lesson.voiceover.rate,
-                    pitch=self.lesson.voiceover.pitch,
-                    global_speed=self.lesson.voiceover.speed,
-                    cache_dir=audio_dir,
-                ),
+                build_speech_service(self.lesson.voiceover, project_root),
                 create_subcaption=True,
             )
 

@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from ai_sankalp.futuristic_array_scene import resolve_package_path
+from ai_sankalp.package import resolve_package_path
 
 
 class ResolvePackagePathTests(unittest.TestCase):

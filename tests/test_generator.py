@@ -1,4 +1,5 @@
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -69,6 +70,11 @@ class GeneratorTests(unittest.TestCase):
                 "    path = '__CONFIG_RELATIVE_PATH__'\n",
                 encoding="utf-8",
             )
+            # futuristic_array needs a rich package; resolve it from examples/<slug>/.
+            package_dir = root / "examples" / "arrays"
+            package_dir.mkdir(parents=True)
+            project_root = Path(__file__).resolve().parents[1]
+            shutil.copy(project_root / "examples" / "arrays_in_cpp" / "lesson_package.json", package_dir)
             lesson = LessonConfig.from_dict({
                 "topic": "Arrays", "title": "Arrays", "language": "C++",
                 "sections": [{"title": "Index", "bullets": ["Indexes begin at zero."]}],

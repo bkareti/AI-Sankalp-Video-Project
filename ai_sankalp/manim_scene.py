@@ -11,10 +11,9 @@ from manim import (
     WHITE, Write, Arrow, Circle, Code, Create, Dot, config,
 )
 from manim_voiceover import VoiceoverScene
-from manim_voiceover.services.gtts import GTTSService
 
 from .config_io import load_config
-from .edge_tts_service import EdgeTTSService
+from .speech import build_speech_service
 
 
 BG = "#071321"
@@ -63,23 +62,10 @@ class ConfigDrivenLesson(VoiceoverScene):
         self.voiceover_enabled = self.lesson.voiceover.enabled
         self.camera.background_color = BG
         if self.voiceover_enabled:
-            audio_dir = Path(__file__).resolve().parents[1] / "generated" / "audio"
-            if self.lesson.voiceover.provider == "edge":
-                service = EdgeTTSService(
-                    voice=self.lesson.voiceover.voice,
-                    rate=self.lesson.voiceover.rate,
-                    pitch=self.lesson.voiceover.pitch,
-                    global_speed=self.lesson.voiceover.speed,
-                    cache_dir=audio_dir,
-                )
-            else:
-                service = GTTSService(
-                    lang=self.lesson.voiceover.language,
-                    tld=self.lesson.voiceover.tld,
-                    global_speed=self.lesson.voiceover.speed,
-                    cache_dir=audio_dir,
-                )
-            self.set_speech_service(service, create_subcaption=True)
+            project_root = Path(__file__).resolve().parents[1]
+            self.set_speech_service(
+                build_speech_service(self.lesson.voiceover, project_root), create_subcaption=True,
+            )
 
         self._add_background()
         self._add_branding()

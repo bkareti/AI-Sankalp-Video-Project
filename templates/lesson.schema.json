@@ -1,39 +1,87 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "AI Sankalp Lesson",
+  "description": "Reduced lesson config accepted by LessonConfig.from_dict. Unknown keys are ignored.",
   "type": "object",
-  "required": ["topic", "title", "language", "code_example", "output_video_name"],
+  "allOf": [
+    {"required": ["topic"]},
+    {"anyOf": [{"required": ["title"]}, {"required": ["lesson_title"]}]},
+    {"anyOf": [{"required": ["language"]}, {"required": ["programming_language"]}]},
+    {"anyOf": [{"required": ["code_example"]}, {"required": ["code"]}]},
+    {"anyOf": [{"required": ["output_video_name"]}, {"required": ["output"]}]},
+    {"anyOf": [{"required": ["sections"]}, {"required": ["explanation"]}, {"required": ["script"]}]}
+  ],
   "properties": {
-    "topic": {"type": "string", "minLength": 1},
-    "title": {"type": "string", "minLength": 1},
-    "language": {"type": "string", "minLength": 1},
-    "sections": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "required": ["title", "bullets"],
-        "properties": {
-          "title": {"type": "string"},
-          "bullets": {"type": "array", "minItems": 1, "items": {"type": "string"}},
-          "narration": {"type": "string"}
-        }
-      }
+    "topic": {"$ref": "#/$defs/text"},
+    "title": {"$ref": "#/$defs/text"},
+    "lesson_title": {"$ref": "#/$defs/text", "deprecated": true, "description": "Alias of title."},
+    "language": {"$ref": "#/$defs/text"},
+    "programming_language": {"$ref": "#/$defs/text", "deprecated": true, "description": "Alias of language."},
+    "sections": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/section"}},
+    "explanation": {
+      "description": "Used when sections is absent: blank-line separated text blocks or a list of sections.",
+      "type": ["string", "array"],
+      "items": {"$ref": "#/$defs/section"}
     },
-    "explanation": {"type": ["string", "array"]},
-    "code_example": {"type": "string", "minLength": 1},
-    "summary": {"type": ["string", "array"]},
-    "output_video_name": {"type": "string", "minLength": 1},
+    "script": {
+      "deprecated": true,
+      "description": "Alias of explanation.",
+      "type": ["string", "array"],
+      "items": {"$ref": "#/$defs/section"}
+    },
+    "code_example": {"$ref": "#/$defs/text"},
+    "code": {"$ref": "#/$defs/text", "deprecated": true, "description": "Alias of code_example."},
+    "summary": {
+      "description": "Up to four recap lines; a string is split on new lines.",
+      "type": ["string", "array"],
+      "items": {"type": "string"}
+    },
+    "output_video_name": {"$ref": "#/$defs/text"},
+    "output": {"$ref": "#/$defs/text", "deprecated": true, "description": "Alias of output_video_name."},
+    "voiceover": {"$ref": "#/$defs/voiceover"},
+    "visual_template": {
+      "description": "standard works for any topic. futuristic_array needs a rich lesson package and currently supports only C++ array lessons.",
+      "type": "string",
+      "enum": ["standard", "futuristic_array"]
+    }
+  },
+  "$defs": {
+    "text": {"type": "string", "minLength": 1, "pattern": "\\S"},
+    "section": {
+      "oneOf": [
+        {"type": "string", "minLength": 1, "pattern": "\\S"},
+        {
+          "type": "object",
+          "required": ["bullets"],
+          "properties": {
+            "title": {"type": "string", "minLength": 1, "pattern": "\\S"},
+            "bullets": {
+              "oneOf": [
+                {"type": "string", "minLength": 1, "pattern": "\\S"},
+                {"type": "array", "minItems": 1, "items": {"type": "string"}}
+              ]
+            },
+            "narration": {"type": "string"}
+          }
+        }
+      ]
+    },
     "voiceover": {
       "oneOf": [
         {"type": "boolean"},
+        {"type": "null"},
         {
           "type": "object",
           "properties": {
             "enabled": {"type": "boolean"},
-            "language": {"type": "string"},
-            "tld": {"type": "string"},
-            "speed": {"type": "number", "minimum": 0.5, "maximum": 2.0}
+            "language": {"type": "string", "description": "gTTS language code, e.g. en."},
+            "tld": {"type": "string", "description": "gTTS Google domain, e.g. co.in for an Indian English accent."},
+            "speed": {"type": "number", "minimum": 0.5, "maximum": 2.0},
+            "provider": {"type": "string", "enum": ["gtts", "edge"]},
+            "voice": {"type": "string", "description": "Edge TTS voice name, e.g. en-IN-NeerjaNeural."},
+            "rate": {"type": "string", "pattern": "^[+-]\\d+%$", "description": "Edge TTS rate, e.g. -4%."},
+            "pitch": {"type": "string", "pattern": "^[+-]\\d+Hz$", "description": "Edge TTS pitch, e.g. +1Hz."},
+            "human_delivery_notes": {"type": "string", "description": "Informational only; not used at render time."}
           }
         }
       ]
