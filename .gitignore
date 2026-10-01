@@ -18,3 +18,5 @@ generated/configs/*.json
 generated/packages/*
 !generated/packages/.gitkeep
 generated/history.jsonl
+generated/qa/*
+!generated/qa/.gitkeep

@@ -34,7 +34,8 @@ class FuturisticArrayLesson(VoiceoverScene):
         self.fonts = brand_fonts()
         voiceover = self.lesson.voiceover.enabled
         if voiceover:
-            self.set_speech_service(build_speech_service(self.lesson.voiceover, project_root), create_subcaption=True)
+            # Captions come from emit_subcaptions in the runner, in both voiceover modes.
+            self.set_speech_service(build_speech_service(self.lesson.voiceover, project_root), create_subcaption=False)
 
         frame = add_brand_frame(self, self.fonts, style="grid")
         for scene_data, plan in zip(package["scenes"], plan_lesson(package)):

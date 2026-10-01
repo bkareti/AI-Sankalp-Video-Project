@@ -11,8 +11,10 @@ from manim_voiceover import VoiceoverScene
 
 from . import brand
 from .brand import BrandFonts, brand_fonts
+from .captions import emit_subcaptions
 from .config_io import load_config
 from .models import LessonSection
+from .narration import standard_script
 from .primitives.base import Beat, PrimitiveContext
 from .primitives.diagrams import SECTION_BUILDERS, build_section_visual
 from .primitives.registry import build_visual
@@ -126,10 +128,12 @@ class ConfigDrivenLesson(VoiceoverScene):
         self.lesson = load_config(Path(self.LESSON_CONFIG_PATH))
         self.voiceover_enabled = self.lesson.voiceover.enabled
         self.fonts = brand_fonts()
+        self.script = {segment.id: segment.text for segment in standard_script(self.lesson)}
         if self.voiceover_enabled:
             project_root = Path(__file__).resolve().parents[1]
+            # Captions come from emit_subcaptions, in both voiceover modes.
             self.set_speech_service(
-                build_speech_service(self.lesson.voiceover, project_root), create_subcaption=True,
+                build_speech_service(self.lesson.voiceover, project_root), create_subcaption=False,
             )
 
         add_brand_frame(self, self.fonts, style="calm")
@@ -143,11 +147,15 @@ class ConfigDrivenLesson(VoiceoverScene):
     def _narrate(self, text_value: str, action: Callable[[], None]) -> None:
         narration = " ".join(text_value.split())
         if self.voiceover_enabled:
-            with self.voiceover(text=narration):
+            with self.voiceover(text=narration) as tracker:
+                emit_subcaptions(self, narration, tracker.duration)
                 action()
         else:
+            start = self.time
             action()
             self.wait(min(1.4, max(0.35, len(narration.split()) * 0.025)))
+            elapsed = self.time - start
+            emit_subcaptions(self, narration, elapsed, offset=-elapsed)
 
     def _show_intro(self) -> None:
         pill_text = fit(
@@ -166,16 +174,13 @@ class ConfigDrivenLesson(VoiceoverScene):
             self.play(FadeIn(pill, shift=DOWN * 0.12), FadeIn(title, shift=UP * 0.18), run_time=0.8)
             self.play(FadeIn(topic), GrowFromCenter(underline), run_time=0.65)
 
-        self._narrate(
-            f"Welcome to AI Sankalp. In this lesson, we will learn {self.lesson.topic} using {self.lesson.language}, step by step.",
-            animate,
-        )
+        self._narrate(self.script["intro"], animate)
         self.wait(0.3)
         self.play(FadeOut(group, shift=UP * 0.1), run_time=0.55)
 
     def _show_explanation(self, number: int, section: LessonSection) -> None:
         parts = build_section_slide(section, number, len(self.lesson.sections), self.fonts)
-        narration = section.narration or f"{section.title}. " + " ".join(section.bullets)
+        narration = self.script[f"section_{number:02d}"]
 
         def animate() -> None:
             self.play(FadeIn(parts.header, shift=DOWN * 0.12), run_time=0.45)
@@ -222,10 +227,7 @@ class ConfigDrivenLesson(VoiceoverScene):
             self.play(Create(code), run_time=1.0)
             self.play(FadeIn(callout, shift=UP * 0.1), run_time=0.4)
 
-        self._narrate(
-            f"Now let us connect the idea to code. This {self.lesson.language} example demonstrates {self.lesson.topic}. Read each line and connect it to the steps we just learned.",
-            animate,
-        )
+        self._narrate(self.script["code"], animate)
         self.wait(0.35)
         self.play(FadeOut(content), run_time=0.55)
 
@@ -241,7 +243,7 @@ class ConfigDrivenLesson(VoiceoverScene):
             self.play(FadeIn(summary_header), FadeIn(summary_panel, scale=0.98), run_time=0.55)
             self.play(*[FadeIn(row, shift=RIGHT * 0.15) for row in rows], run_time=0.85)
 
-        self._narrate("Let us recap. " + " ".join(self.lesson.summary), animate)
+        self._narrate(self.script["summary"], animate)
         self.wait(0.35)
         self.play(FadeOut(content), run_time=0.55)
 
@@ -256,5 +258,5 @@ class ConfigDrivenLesson(VoiceoverScene):
             self.play(FadeIn(thanks, shift=UP * 0.15), GrowFromCenter(line), run_time=0.75)
             self.play(FadeIn(brand_name), run_time=0.4)
 
-        self._narrate("Thank you for learning with AI Sankalp. Keep learning, and keep building.", animate)
+        self._narrate(self.script["outro"], animate)
         self.wait(0.6)

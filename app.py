@@ -39,11 +39,31 @@ def build_parser() -> argparse.ArgumentParser:
     generate.add_argument(
         "--quality", choices=("low", "medium", "high", "production", "4k"), default="low"
     )
+    generate.add_argument(
+        "--burn-captions", action="store_true",
+        help="Also write <name>_captioned.mp4 with captions drawn into the video",
+    )
 
     sample = subparsers.add_parser("sample", help="Generate the included Python loops sample")
     sample.add_argument("--render", action="store_true")
     sample.add_argument("--no-voiceover", action="store_true", help="Render without gTTS/internet")
     sample.add_argument("--quality", choices=("low", "medium", "high", "production", "4k"), default="low")
+    sample.add_argument("--burn-captions", action="store_true", help="Also write a captioned copy of the MP4")
+
+    captions = subparsers.add_parser(
+        "captions", help="Write SRT and VTT captions from narration text, without rendering",
+    )
+    captions.add_argument("--config", type=Path, required=True, help="Reduced lesson config or rich lesson_package.json")
+    captions.add_argument("--output-dir", type=Path, help="Caption folder (default: generated/videos)")
+
+    qa = subparsers.add_parser(
+        "qa", help="Check whether a lesson is final-ready (exit 0 = ready, 2 = needs review, 1 = fail)",
+    )
+    target = qa.add_mutually_exclusive_group(required=True)
+    target.add_argument("--slug", help="Lesson slug, e.g. arrays_in_cpp (package found by slug)")
+    target.add_argument("--package", type=Path, help="Path to a lesson_package.json")
+    qa.add_argument("--video-dir", type=Path, help="Folder with the final MP4 and captions (default: generated/videos)")
+    qa.add_argument("--report", type=Path, help="Report path (default: generated/qa/<slug>/qa_report.json)")
 
     subparsers.add_parser("interactive", help="Enter a lesson through terminal prompts")
     history = subparsers.add_parser("history", help="Show recent generation and render events")
@@ -90,6 +110,7 @@ def generate_and_maybe_render(
     quality: str = "low",
     output_dir: Path | None = None,
     package_path: Path | None = None,
+    burn_captions: bool = False,
 ) -> int:
     generator = LessonGenerator(PROJECT_ROOT)
     generated = generator.generate(lesson, package_path=package_path)
@@ -99,11 +120,44 @@ def generate_and_maybe_render(
     if generated.package_path:
         print(f"Package: {generated.package_path}")
     if render:
-        result = ManimRenderer(PROJECT_ROOT).render(generated, lesson, output_dir, quality)
+        result = ManimRenderer(PROJECT_ROOT).render(generated, lesson, output_dir, quality, burn_captions)
         print(f"Video:  {result.video_path}")
+        if result.captions:
+            print(f"Captions: {result.captions.srt} and {result.captions.vtt} ({result.captions.source}, {result.captions.cue_count} cues)")
+        if result.captioned_video_path:
+            print(f"Captioned video: {result.captioned_video_path}")
     else:
         print("Scene generated. Add --render to create the MP4.")
     return 0
+
+
+def write_captions(config: Path, output_dir: Path | None) -> int:
+    from ai_sankalp.captions import SOURCE_ESTIMATED, export_captions
+    from ai_sankalp.generator import check_template_prerequisites
+    from ai_sankalp.renderer import narration_cues
+
+    loaded = load_lesson_input(config)
+    package_path = check_template_prerequisites(loaded.lesson, PROJECT_ROOT, loaded.package_path)
+    files = export_captions(
+        narration_cues(loaded.lesson, package_path),
+        Path(output_dir or PROJECT_ROOT / "generated" / "videos").expanduser().resolve(),
+        loaded.lesson.slug, SOURCE_ESTIMATED,
+    )
+    print(f"Captions: {files.srt}")
+    print(f"          {files.vtt}")
+    print(f"{files.cue_count} cues, timed from narration text (a render times them exactly).")
+    return 0
+
+
+def run_quality_check(slug: str | None, package: Path | None, video_dir: Path | None, report_path: Path | None) -> int:
+    from ai_sankalp.package import display_path
+    from ai_sankalp.qa import EXIT_CODES, default_report_path, run_qa, write_report
+
+    report = run_qa(PROJECT_ROOT, package_path=package, slug=slug, video_dir=video_dir)
+    path = write_report(report, Path(report_path or default_report_path(PROJECT_ROOT, report.slug)))
+    print(report.format_text())
+    print(f"\nReport: {display_path(path, PROJECT_ROOT)}")
+    return EXIT_CODES[report.status]
 
 
 def main(argv=None) -> int:
@@ -119,13 +173,17 @@ def main(argv=None) -> int:
             if args.no_voiceover:
                 loaded.lesson.voiceover.enabled = False
             return generate_and_maybe_render(
-                loaded.lesson, args.render, args.quality, args.output_dir, loaded.package_path
+                loaded.lesson, args.render, args.quality, args.output_dir, loaded.package_path, args.burn_captions
             )
         if args.command == "sample":
             lesson = load_config(PROJECT_ROOT / "examples" / "python_for_loops.json")
             if args.no_voiceover:
                 lesson.voiceover.enabled = False
-            return generate_and_maybe_render(lesson, args.render, args.quality)
+            return generate_and_maybe_render(lesson, args.render, args.quality, burn_captions=args.burn_captions)
+        if args.command == "captions":
+            return write_captions(args.config, args.output_dir)
+        if args.command == "qa":
+            return run_quality_check(args.slug, args.package, args.video_dir, args.report)
         if args.command == "interactive":
             lesson = interactive_lesson()
             should_render = input("Render the MP4 now? [y/N]: ").strip().lower() in {"y", "yes"}

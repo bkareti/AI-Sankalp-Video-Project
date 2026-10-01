@@ -1,0 +1,133 @@
+{
+  "slug": "arrays_in_cpp",
+  "scene_count": 10,
+  "planned_seconds": 312.0,
+  "duration_minutes": 5.2,
+  "scenes": [
+    {
+      "id": "scene_01_intro",
+      "type": "intro",
+      "sentences": 3,
+      "visuals": [
+        {
+          "type": "title_card",
+          "beats": 4,
+          "timing": "narrated"
+        }
+      ]
+    },
+    {
+      "id": "scene_02_motivation",
+      "type": "motivation",
+      "sentences": 5,
+      "visuals": [
+        {
+          "type": "card_merge",
+          "beats": 6,
+          "timing": "narrated"
+        }
+      ]
+    },
+    {
+      "id": "scene_03_explanation",
+      "type": "explanation",
+      "sentences": 5,
+      "visuals": [
+        {
+          "type": "array_lane",
+          "beats": 7,
+          "timing": "narrated"
+        }
+      ]
+    },
+    {
+      "id": "scene_04_indexing",
+      "type": "explanation",
+      "sentences": 8,
+      "visuals": [
+        {
+          "type": "token_breakdown",
+          "beats": 9,
+          "timing": "narrated"
+        },
+        {
+          "type": "index_access",
+          "beats": 8,
+          "timing": "after_narration"
+        }
+      ]
+    },
+    {
+      "id": "scene_05_code",
+      "type": "code_walkthrough",
+      "sentences": 7,
+      "visuals": [
+        {
+          "type": "code_walkthrough",
+          "beats": 8,
+          "timing": "narrated"
+        }
+      ]
+    },
+    {
+      "id": "scene_06_trace",
+      "type": "visual_trace",
+      "sentences": 9,
+      "visuals": [
+        {
+          "type": "loop_trace",
+          "beats": 10,
+          "timing": "narrated"
+        }
+      ]
+    },
+    {
+      "id": "scene_07_mistake",
+      "type": "common_mistake",
+      "sentences": 7,
+      "visuals": [
+        {
+          "type": "bounds_check",
+          "beats": 9,
+          "timing": "narrated"
+        }
+      ]
+    },
+    {
+      "id": "scene_08_practice",
+      "type": "practice",
+      "sentences": 5,
+      "visuals": [
+        {
+          "type": "practice_reveal",
+          "beats": 6,
+          "timing": "narrated"
+        }
+      ]
+    },
+    {
+      "id": "scene_09_summary",
+      "type": "summary",
+      "sentences": 6,
+      "visuals": [
+        {
+          "type": "concept_map",
+          "beats": 7,
+          "timing": "narrated"
+        }
+      ]
+    },
+    {
+      "id": "scene_10_outro",
+      "type": "outro",
+      "sentences": 3,
+      "visuals": [
+        {
+          "type": "outro_card",
+          "beats": 4,
+          "timing": "narrated"
+        }
+      ]
+    }
+  ]
+}

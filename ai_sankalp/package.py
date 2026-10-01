@@ -7,6 +7,7 @@ reduced config the renderer uses.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -154,6 +155,25 @@ def semantic_issues(package: Dict[str, Any]) -> List[SchemaIssue]:
     return issues
 
 
+CHECKLIST_ITEMS = ("pedagogy", "pacing", "readability", "brand")
+DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def review_status_issues(package: Dict[str, Any]) -> List[SchemaIssue]:
+    """An approval must name the reviewer and the date (YYYY-MM-DD)."""
+    review = package.get("review_status")
+    if not isinstance(review, dict) or review.get("sme_approved") is not True:
+        return []
+    issues = []
+    reviewer = review.get("sme_reviewer")
+    if not isinstance(reviewer, str) or not reviewer.strip():
+        issues.append(SchemaIssue("review_status.sme_reviewer", "is required when sme_approved is true"))
+    approved_on = review.get("sme_approved_on")
+    if not isinstance(approved_on, str) or not DATE_PATTERN.match(approved_on):
+        issues.append(SchemaIssue("review_status.sme_approved_on", "must be a YYYY-MM-DD date when sme_approved is true"))
+    return issues
+
+
 def plan_schema_issues(package: Dict[str, Any]) -> List[SchemaIssue]:
     """Primitive-plan problems (scenes[].visuals and defaults) as field issues."""
     from .primitives.planner import lesson_plan_issues
@@ -171,6 +191,7 @@ def validate_package(package: Any) -> List[SchemaIssue]:
     if isinstance(package, dict):
         schema_ok = not issues
         issues.extend(semantic_issues(package))
+        issues.extend(review_status_issues(package))
         if schema_ok:
             # Planning assumes well-typed fields, so it only runs on a schema-valid package.
             issues.extend(plan_schema_issues(package))

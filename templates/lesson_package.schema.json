@@ -32,6 +32,7 @@
     "output_filename": {"type": "string", "pattern": "^[a-z0-9_]+\\.mp4$"},
     "output_folder_name": {"$ref": "#/$defs/id"},
     "visual_template": {"type": "string", "enum": ["standard", "futuristic_array"]},
+    "review_status": {"$ref": "#/$defs/reviewStatus"},
     "branding": {"$ref": "#/$defs/branding"},
     "generator_compatibility": {"$ref": "#/$defs/generatorCompatibility"}
   },
@@ -194,6 +195,27 @@
         }
       ]
     },
+    "reviewStatus": {
+      "description": "Subject-matter expert sign-off. A lesson is final-ready only when sme_approved is true and every checklist item is pass. See docs/review-checklist.md.",
+      "type": "object",
+      "required": ["sme_approved"],
+      "properties": {
+        "sme_approved": {"type": "boolean"},
+        "sme_reviewer": {"type": ["string", "null"]},
+        "sme_approved_on": {"type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+        "notes": {"type": "string"},
+        "checklist": {
+          "type": "object",
+          "properties": {
+            "pedagogy": {"$ref": "#/$defs/checklistValue"},
+            "pacing": {"$ref": "#/$defs/checklistValue"},
+            "readability": {"$ref": "#/$defs/checklistValue"},
+            "brand": {"$ref": "#/$defs/checklistValue"}
+          }
+        }
+      }
+    },
+    "checklistValue": {"type": "string", "enum": ["pending", "pass", "needs_review"]},
     "sceneVisual": {
       "description": "A primitive for a package scene. type selects it; other keys are its parameters, validated by ai_sankalp/primitives/specs.py. See docs/templates.md.",
       "type": "object",
