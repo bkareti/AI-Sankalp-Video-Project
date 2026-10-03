@@ -704,6 +704,13 @@
   "output_filename": "python_for_loops.mp4",
   "output_folder_name": "python_for_loops",
   "visual_template": "standard",
+  "review_status": {
+    "sme_approved": false,
+    "sme_reviewer": null,
+    "sme_approved_on": null,
+    "notes": "Awaiting subject-matter expert review. See docs/review-checklist.md.",
+    "checklist": {"pedagogy": "pending", "pacing": "pending", "readability": "pending", "brand": "pending"}
+  },
   "branding": {
     "logo_asset_id": "asset_branding",
     "logo_position": "upper_right_safe_area",
@@ -737,7 +744,16 @@
           "Python takes the first item from the sequence.",
           "The loop variable stores the current item.",
           "After the body runs, Python moves to the next item."
-        ]
+        ],
+        "visual": {
+          "type": "loop_trace",
+          "title": "number takes each value from range(1, 6)",
+          "values": ["1", "2", "3", "4", "5"],
+          "variable": "number",
+          "variable_values": ["1", "2", "3", "4", "5"],
+          "outputs": ["1 1", "2 4", "3 9", "4 16", "5 25"],
+          "output_title": "PRINTED"
+        }
       },
       {
         "title": "Use range safely",
@@ -745,7 +761,19 @@
           "range(1, 6) produces the numbers 1 through 5.",
           "The start value is included, but the stop value is excluded.",
           "Indentation tells Python which statements belong to the loop."
-        ]
+        ],
+        "visual": {
+          "type": "table",
+          "title": "for number in range(1, 6)",
+          "columns": ["number", "square"],
+          "rows": [
+            ["1", "1"],
+            ["2", "4"],
+            ["3", "9"],
+            ["4", "16"],
+            ["5", "25"]
+          ]
+        }
       }
     ],
     "code_example": "for number in range(1, 6):\n    square = number * number\n    print(number, square)",

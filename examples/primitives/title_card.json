@@ -1,0 +1,11 @@
+{
+  "narration": "Welcome. Today we will sort a list in Python. We will see the list before and after.",
+  "language": "Python",
+  "visual": {
+    "type": "title_card",
+    "eyebrow": "PYTHON  •  LISTS",
+    "heading": "SORTING",
+    "subtitle": "Before  •  After",
+    "lane_values": ["3", "1", "2"]
+  }
+}

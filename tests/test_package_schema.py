@@ -64,7 +64,7 @@ class TrackedPackageTests(unittest.TestCase):
     def test_shared_defs_match_reduced_schema(self):
         reduced = load_schema("lesson.schema.json")["$defs"]
         package = load_schema("lesson_package.schema.json")["$defs"]
-        for name in ("section", "voiceover"):
+        for name in ("section", "voiceover", "visual"):
             self.assertEqual(reduced[name], package[name], name)
 
 

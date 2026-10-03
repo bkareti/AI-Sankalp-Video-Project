@@ -21,40 +21,16 @@ class TemplateSpec:
     check: PrerequisiteCheck = field(default=_no_checks, compare=False, repr=False)
 
 
-FUTURISTIC_ARRAY_SCENE_IDS: Tuple[str, ...] = (
-    "scene_01_intro",
-    "scene_02_motivation",
-    "scene_03_explanation",
-    "scene_04_indexing",
-    "scene_05_code",
-    "scene_06_trace",
-    "scene_07_mistake",
-    "scene_08_practice",
-    "scene_09_summary",
-    "scene_10_outro",
-)
-CPP_LANGUAGE_NAMES = {"c++", "cpp", "c plus plus", "cplusplus"}
+def _check_package_plan(lesson: Any, package: Optional[Dict[str, Any]]) -> List[str]:
+    """Every package scene must resolve to valid primitives (explicit or default)."""
+    if package is None:
+        return []
+    from .primitives.planner import lesson_plan_issues
 
-
-def _check_futuristic_array(lesson: Any, package: Optional[Dict[str, Any]]) -> List[str]:
-    problems: List[str] = []
-    language = " ".join(str(lesson.language).lower().split())
-    about_arrays = "array" in f"{lesson.topic} {lesson.title}".lower()
-    if language not in CPP_LANGUAGE_NAMES or not about_arrays:
-        problems.append(
-            "visual_template 'futuristic_array' currently supports only C++ array lessons "
-            f"(got language '{lesson.language}', topic '{lesson.topic}'). "
-            "Use visual_template 'standard' for other topics."
-        )
-    if package is not None:
-        present = {scene.get("id") for scene in package.get("scenes", []) if isinstance(scene, dict)}
-        missing = [scene_id for scene_id in FUTURISTIC_ARRAY_SCENE_IDS if scene_id not in present]
-        if missing:
-            problems.append(
-                "the lesson package is missing scene id(s) required by 'futuristic_array': "
-                + ", ".join(missing)
-            )
-    return problems
+    issues = lesson_plan_issues(package)
+    if not issues:
+        return []
+    return ["the lesson package cannot be drawn with 'futuristic_array': " + "; ".join(issues)]
 
 
 TEMPLATES: Dict[str, TemplateSpec] = {
@@ -69,8 +45,8 @@ TEMPLATES: Dict[str, TemplateSpec] = {
         scene_module="ai_sankalp.futuristic_array_scene",
         scene_base="FuturisticArrayLesson",
         requires_package=True,
-        description="Flagship C++ arrays template; needs a rich lesson package.",
-        check=_check_futuristic_array,
+        description="Flagship data-driven template; draws every package scene with primitives.",
+        check=_check_package_plan,
     ),
 }
 TEMPLATE_NAMES: Tuple[str, ...] = tuple(TEMPLATES)

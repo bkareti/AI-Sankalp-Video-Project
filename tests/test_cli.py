@@ -20,7 +20,7 @@ class CliParserTests(unittest.TestCase):
         package = Path(app.PROJECT_ROOT) / "examples" / "arrays_in_cpp" / "lesson_package.json"
         with mock.patch.object(app, "generate_and_maybe_render", return_value=0) as run:
             self.assertEqual(0, app.main(["generate", "--config", str(package), "--no-voiceover"]))
-        lesson, render, quality, output_dir, package_path = run.call_args[0]
+        lesson, render, quality, output_dir, package_path, burn = run.call_args[0]
         self.assertFalse(lesson.voiceover.enabled)
         self.assertEqual(package.resolve(), package_path)
 

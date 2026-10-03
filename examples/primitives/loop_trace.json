@@ -1,0 +1,15 @@
+{
+  "narration": "Watch the loop. The variable takes each value. One. Two. Three. Then the loop ends.",
+  "language": "Python",
+  "visual": {
+    "type": "loop_trace",
+    "label": "06 / TRACE",
+    "title": "Follow x through the list",
+    "values": ["1", "2", "3"],
+    "variable": "x",
+    "variable_values": ["1", "2", "3"],
+    "outputs": ["1", "4", "9"],
+    "output_title": "PRINTED",
+    "stop_label": "no values left  →  stop"
+  }
+}

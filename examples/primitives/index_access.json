@@ -1,0 +1,14 @@
+{
+  "narration": "Indexing counts from the start. ages at index one is the second value.",
+  "language": "Python",
+  "visual": {
+    "type": "index_access",
+    "label": "04 / INDEXING",
+    "title": "Index one is the second cell",
+    "values": ["18", "21", "19"],
+    "index": 1,
+    "access_label": "ages[1]",
+    "result_label": "value  =  21",
+    "offset_label": "start  +  1 step"
+  }
+}

@@ -57,44 +57,40 @@ class FuturisticPrerequisiteTests(unittest.TestCase):
             self.assertFalse((root / "generated" / "configs").exists())
             self.assertFalse((root / "generated" / "scenes").exists())
 
-    def test_futuristic_rejects_sql_lesson(self):
+    def test_non_array_topics_render_from_package_data(self):
+        # #7 replaced the temporary C++-arrays-only rule with capability checks:
+        # any topic works when its package scenes plan into valid primitives.
         with tempfile.TemporaryDirectory() as directory:
             root = make_root(directory)
-            copy_package(root, "sql_joins")
+
+            def strip_visuals(data):
+                for scene in data["scenes"]:
+                    scene.pop("visuals", None)
+
+            copy_package(root, "sql_joins", mutate=strip_visuals)
             sql = lesson(topic="SQL joins", title="Joins", language="SQL", output_video_name="sql_joins")
-            with self.assertRaisesRegex(LessonValidationError, "only C\\+\\+ array lessons"):
-                LessonGenerator(root).generate(sql)
+            result = LessonGenerator(root).generate(sql)
+            self.assertTrue(result.scene_path.exists())
 
-    def test_futuristic_rejects_python_lesson(self):
+    def test_invalid_primitive_params_fail_with_paths(self):
         with tempfile.TemporaryDirectory() as directory:
             root = make_root(directory)
-            copy_package(root, "python_lists")
-            python = lesson(topic="Python lists", title="Lists", language="Python", output_video_name="python_lists")
-            with self.assertRaisesRegex(LessonValidationError, "Use visual_template 'standard'"):
-                LessonGenerator(root).generate(python)
-
-    def test_futuristic_rejects_cpp_non_array_topic(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = make_root(directory)
-            copy_package(root, "cpp_pointers")
-            pointers = lesson(topic="Pointers", title="C++ Pointers", output_video_name="cpp_pointers")
-            with self.assertRaisesRegex(LessonValidationError, "only C\\+\\+ array lessons"):
-                LessonGenerator(root).generate(pointers)
-
-    def test_missing_scene_ids_listed(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = make_root(directory)
-
-            def drop_scenes(data):
-                data["scenes"] = [s for s in data["scenes"] if s["id"] not in {"scene_06_trace", "scene_07_mistake"}]
-                data["voiceover_segments"] = [
-                    s for s in data["voiceover_segments"] if s["scene_id"] not in {"scene_06_trace", "scene_07_mistake"}
-                ]
-
-            copy_package(root, mutate=drop_scenes)
+            copy_package(root, mutate=lambda data: data["scenes"][5]["visuals"][0].update(values=[]))
             with self.assertRaises(LessonValidationError) as ctx:
                 LessonGenerator(root).generate(lesson())
-            self.assertIn("scene_06_trace, scene_07_mistake", str(ctx.exception))
+            self.assertIn("scenes[5].visuals[0]: values must have 1 to 8 items", str(ctx.exception))
+            self.assertFalse((root / "generated" / "scenes").exists())
+
+    def test_fewer_scenes_still_generate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = make_root(directory)
+
+            def keep_three(data):
+                data["scenes"] = data["scenes"][:3]
+                data["voiceover_segments"] = data["voiceover_segments"][:3]
+
+            copy_package(root, mutate=keep_three)
+            self.assertTrue(LessonGenerator(root).generate(lesson()).scene_path.exists())
 
     def test_invalid_package_rejected(self):
         with tempfile.TemporaryDirectory() as directory:

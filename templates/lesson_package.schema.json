@@ -32,6 +32,7 @@
     "output_filename": {"type": "string", "pattern": "^[a-z0-9_]+\\.mp4$"},
     "output_folder_name": {"$ref": "#/$defs/id"},
     "visual_template": {"type": "string", "enum": ["standard", "futuristic_array"]},
+    "review_status": {"$ref": "#/$defs/reviewStatus"},
     "branding": {"$ref": "#/$defs/branding"},
     "generator_compatibility": {"$ref": "#/$defs/generatorCompatibility"}
   },
@@ -93,6 +94,10 @@
         "voice_delivery": {"$ref": "#/$defs/voiceDelivery"},
         "on_screen_text": {"$ref": "#/$defs/stringList"},
         "visual_objects": {"$ref": "#/$defs/stringList"},
+        "visuals": {
+          "description": "Optional primitives drawn by the futuristic_array template, in order. Without it, a default is chosen by scene type.",
+          "type": "array", "minItems": 1, "maxItems": 3, "items": {"$ref": "#/$defs/sceneVisual"}
+        },
         "animation_notes": {"$ref": "#/$defs/stringList"},
         "code_example_ids": {"$ref": "#/$defs/stringList"},
         "timing_seconds": {"type": "number", "minimum": 1, "maximum": 600},
@@ -184,10 +189,52 @@
                 {"type": "array", "minItems": 1, "items": {"type": "string"}}
               ]
             },
-            "narration": {"type": "string"}
+            "narration": {"type": "string"},
+            "visual": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/visual"}]}
           }
         }
       ]
+    },
+    "reviewStatus": {
+      "description": "Subject-matter expert sign-off. A lesson is final-ready only when sme_approved is true and every checklist item is pass. See docs/review-checklist.md.",
+      "type": "object",
+      "required": ["sme_approved"],
+      "properties": {
+        "sme_approved": {"type": "boolean"},
+        "sme_reviewer": {"type": ["string", "null"]},
+        "sme_approved_on": {"type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+        "notes": {"type": "string"},
+        "checklist": {
+          "type": "object",
+          "properties": {
+            "pedagogy": {"$ref": "#/$defs/checklistValue"},
+            "pacing": {"$ref": "#/$defs/checklistValue"},
+            "readability": {"$ref": "#/$defs/checklistValue"},
+            "brand": {"$ref": "#/$defs/checklistValue"}
+          }
+        }
+      }
+    },
+    "checklistValue": {"type": "string", "enum": ["pending", "pass", "needs_review"]},
+    "sceneVisual": {
+      "description": "A primitive for a package scene. type selects it; other keys are its parameters, validated by ai_sankalp/primitives/specs.py. See docs/templates.md.",
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {"type": "string", "enum": ["flow", "steps", "compare", "table", "title_card", "card_merge", "array_lane", "token_breakdown", "index_access", "code_walkthrough", "loop_trace", "bounds_check", "practice_reveal", "concept_map", "outro_card", "bullet_card"]},
+        "title": {"type": "string", "maxLength": 48},
+        "label": {"type": "string", "maxLength": 40},
+        "timing": {"type": "string", "enum": ["narrated", "after_narration"]}
+      }
+    },
+    "visual": {
+      "description": "Optional explicit section visual. type selects the primitive; other keys are its parameters, validated by ai_sankalp/primitives/specs.py. See README 'Section visuals'.",
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {"type": "string", "enum": ["flow", "steps", "compare", "table", "array_lane", "loop_trace", "concept_map"]},
+        "title": {"type": "string", "maxLength": 48}
+      }
     },
     "voiceover": {
       "oneOf": [
