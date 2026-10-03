@@ -6,7 +6,7 @@ import json
 import sys
 from pathlib import Path
 
-from ai_sankalp.config_io import load_config
+from ai_sankalp.config_io import load_config, load_lesson_input
 from ai_sankalp.generator import LessonGenerator
 from ai_sankalp.history import HistoryLog
 from ai_sankalp.models import LessonConfig, LessonValidationError
@@ -24,9 +24,17 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers.add_parser("gui", help="Open the local lesson input form")
 
-    generate = subparsers.add_parser("generate", help="Generate a scene from a JSON or YAML lesson")
-    generate.add_argument("--config", type=Path, required=True, help="Lesson config file")
+    generate = subparsers.add_parser(
+        "generate", help="Generate a scene from a JSON/YAML lesson config or a rich lesson package"
+    )
+    generate.add_argument(
+        "--config", type=Path, required=True,
+        help="Reduced lesson config (JSON/YAML) or rich lesson_package.json (auto-detected)",
+    )
     generate.add_argument("--render", action="store_true", help="Render the generated scene to MP4")
+    generate.add_argument(
+        "--no-voiceover", action="store_true", help="Render without narration (no internet needed)"
+    )
     generate.add_argument("--output-dir", type=Path, help="Final MP4 folder (default: generated/videos)")
     generate.add_argument(
         "--quality", choices=("low", "medium", "high", "production", "4k"), default="low"
@@ -77,13 +85,19 @@ def interactive_lesson() -> LessonConfig:
 
 
 def generate_and_maybe_render(
-    lesson: LessonConfig, render: bool, quality: str = "low", output_dir: Path | None = None
+    lesson: LessonConfig,
+    render: bool,
+    quality: str = "low",
+    output_dir: Path | None = None,
+    package_path: Path | None = None,
 ) -> int:
     generator = LessonGenerator(PROJECT_ROOT)
-    generated = generator.generate(lesson)
+    generated = generator.generate(lesson, package_path=package_path)
     print(f"Scene:  {generated.scene_path}")
     print(f"Config: {generated.config_path}")
     print(f"Class:  {generated.scene_class}")
+    if generated.package_path:
+        print(f"Package: {generated.package_path}")
     if render:
         result = ManimRenderer(PROJECT_ROOT).render(generated, lesson, output_dir, quality)
         print(f"Video:  {result.video_path}")
@@ -101,8 +115,12 @@ def main(argv=None) -> int:
             launch_gui(PROJECT_ROOT)
             return 0
         if args.command == "generate":
-            lesson = load_config(args.config)
-            return generate_and_maybe_render(lesson, args.render, args.quality, args.output_dir)
+            loaded = load_lesson_input(args.config)
+            if args.no_voiceover:
+                loaded.lesson.voiceover.enabled = False
+            return generate_and_maybe_render(
+                loaded.lesson, args.render, args.quality, args.output_dir, loaded.package_path
+            )
         if args.command == "sample":
             lesson = load_config(PROJECT_ROOT / "examples" / "python_for_loops.json")
             if args.no_voiceover:

@@ -5,14 +5,30 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List
 
+from .template_registry import TEMPLATE_NAMES
+
 
 class LessonValidationError(ValueError):
     """Raised when lesson input cannot produce a useful video."""
 
 
+VOICE_PROVIDERS = ("gtts", "edge")
+RATE_PATTERN = r"^[+-]\d+%$"
+PITCH_PATTERN = r"^[+-]\d+Hz$"
+
+
 def safe_slug(value: str, fallback: str = "lesson") -> str:
     slug = re.sub(r"[^a-zA-Z0-9]+", "_", value.strip()).strip("_").lower()
     return slug[:80] or fallback
+
+
+def _text_field(data: Dict[str, Any], *keys: str) -> str:
+    """Return the first present key as text; null (e.g. a blank YAML value) counts as missing."""
+    for key in keys:
+        value = data.get(key)
+        if value is not None:
+            return str(value)
+    return ""
 
 
 def scene_class_name(value: str) -> str:
@@ -34,6 +50,12 @@ class VoiceoverConfig:
     rate: str = "+0%"
     pitch: str = "+0Hz"
 
+    ACCEPTED_FIELDS = frozenset({
+        "enabled", "language", "tld", "speed", "provider", "voice", "rate", "pitch",
+    })
+    # Accepted for documentation in packages; never used at render time.
+    INFORMATIONAL_FIELDS = frozenset({"human_delivery_notes"})
+
     @classmethod
     def from_dict(cls, data: Any) -> "VoiceoverConfig":
         if isinstance(data, bool):
@@ -42,18 +64,35 @@ class VoiceoverConfig:
             return cls()
         if not isinstance(data, dict):
             raise LessonValidationError("voiceover must be true, false, or an object")
-        speed = float(data.get("speed", 1.0))
+        enabled = data.get("enabled", True)
+        if not isinstance(enabled, bool):
+            raise LessonValidationError("voiceover.enabled must be true or false")
+        speed = data.get("speed", 1.0)
+        if isinstance(speed, bool) or not isinstance(speed, (int, float)):
+            raise LessonValidationError("voiceover.speed must be a number between 0.5 and 2.0")
+        speed = float(speed)
         if not 0.5 <= speed <= 2.0:
             raise LessonValidationError("voiceover.speed must be between 0.5 and 2.0")
+        provider = str(data.get("provider", "gtts")).strip().lower() or "gtts"
+        if provider not in VOICE_PROVIDERS:
+            raise LessonValidationError(
+                f"voiceover.provider must be one of: {', '.join(VOICE_PROVIDERS)} (got '{provider}')"
+            )
+        rate = str(data.get("rate", "+0%")).strip() or "+0%"
+        if not re.match(RATE_PATTERN, rate):
+            raise LessonValidationError(f"voiceover.rate must look like +0% or -4% (got '{rate}')")
+        pitch = str(data.get("pitch", "+0Hz")).strip() or "+0Hz"
+        if not re.match(PITCH_PATTERN, pitch):
+            raise LessonValidationError(f"voiceover.pitch must look like +0Hz or -2Hz (got '{pitch}')")
         return cls(
-            enabled=bool(data.get("enabled", True)),
+            enabled=enabled,
             language=str(data.get("language", "en")).strip() or "en",
             tld=str(data.get("tld", "com")).strip() or "com",
             speed=speed,
-            provider=str(data.get("provider", "gtts")).strip().lower() or "gtts",
+            provider=provider,
             voice=str(data.get("voice", "en-IN-NeerjaNeural")).strip() or "en-IN-NeerjaNeural",
-            rate=str(data.get("rate", "+0%")).strip() or "+0%",
-            pitch=str(data.get("pitch", "+0Hz")).strip() or "+0Hz",
+            rate=rate,
+            pitch=pitch,
         )
 
 
@@ -62,6 +101,8 @@ class LessonSection:
     title: str
     bullets: List[str]
     narration: str = ""
+
+    ACCEPTED_FIELDS = frozenset({"title", "bullets", "narration"})
 
     @classmethod
     def from_value(cls, value: Any, index: int) -> "LessonSection":
@@ -91,16 +132,24 @@ class LessonConfig:
     voiceover: VoiceoverConfig = field(default_factory=VoiceoverConfig)
     visual_template: str = "standard"
 
+    # Every top-level key from_dict reads. Aliases kept for older configs:
+    # lesson_title, programming_language, code, output, explanation, script.
+    ACCEPTED_FIELDS = frozenset({
+        "topic", "title", "lesson_title", "language", "programming_language",
+        "sections", "explanation", "script", "code_example", "code", "summary",
+        "output_video_name", "output", "voiceover", "visual_template",
+    })
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "LessonConfig":
         if not isinstance(data, dict):
             raise LessonValidationError("lesson config must be a JSON/YAML object")
 
-        topic = str(data.get("topic", "")).strip()
-        title = str(data.get("title", data.get("lesson_title", ""))).strip()
-        language = str(data.get("language", data.get("programming_language", ""))).strip()
-        code = str(data.get("code_example", data.get("code", ""))).rstrip()
-        output_name = str(data.get("output_video_name", data.get("output", ""))).strip()
+        topic = _text_field(data, "topic").strip()
+        title = _text_field(data, "title", "lesson_title").strip()
+        language = _text_field(data, "language", "programming_language").strip()
+        code = _text_field(data, "code_example", "code").rstrip()
+        output_name = _text_field(data, "output_video_name", "output").strip()
 
         raw_sections = data.get("sections")
         if raw_sections is None:
@@ -135,8 +184,10 @@ class LessonConfig:
             summary = [section.bullets[0] for section in sections[:4]]
 
         visual_template = str(data.get("visual_template", "standard")).strip().lower() or "standard"
-        if visual_template not in {"standard", "futuristic_array"}:
-            raise LessonValidationError("visual_template must be standard or futuristic_array")
+        if visual_template not in TEMPLATE_NAMES:
+            raise LessonValidationError(
+                f"visual_template must be one of: {', '.join(TEMPLATE_NAMES)} (got '{visual_template}')"
+            )
 
         return cls(
             topic=topic,

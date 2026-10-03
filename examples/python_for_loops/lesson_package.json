@@ -1,0 +1,767 @@
+{
+  "topic": "Python for loops",
+  "slug": "python_for_loops",
+  "title": "Mastering Python For Loops",
+  "language": "Python",
+  "language_version": "Python 3.9+",
+  "audience": "Beginner programmers in Indian colleges writing their first Python loops",
+  "prerequisites": [
+    "Python variables",
+    "The print function",
+    "Basic arithmetic operators"
+  ],
+  "difficulty": "beginner",
+  "duration_minutes": 3.3,
+  "lesson_objective": "After watching, the learner can write a for loop over range and predict each line it prints.",
+  "short_description": "A visual introduction to Python for loops: iteration, range start and stop rules, and the loop body.",
+  "course_category": "Python Foundations",
+  "voice_profile": {
+    "persona": "Patient instructor explaining at a whiteboard",
+    "accent_language": "Clear neutral Indian English",
+    "target_pace_wpm": 130,
+    "speed_multiplier": 1.0,
+    "tone": "Warm, confident, and beginner-friendly",
+    "energy": "Medium with gentle variation",
+    "modulation": "Slow slightly while tracing iterations; emphasize the range rule",
+    "pronunciation_dictionary": [
+      {
+        "written": "range(1, 6)",
+        "spoken": "range of one comma six"
+      }
+    ],
+    "provider_notes": "gTTS with tld co.in. Express rhythm through punctuation and short sentences; gTTS has no pitch or emotion controls."
+  },
+  "scenes": [
+    {
+      "id": "scene_01_intro",
+      "type": "intro",
+      "title": "Meet the For Loop",
+      "purpose": "Set the goal: repeat work over a sequence without copying code.",
+      "voiceover": "Welcome to AI Sankalp. Today we will learn the Python for loop. By the end, you will be able to repeat an action for every item in a sequence, and predict exactly what the loop prints.",
+      "voice_delivery": {
+        "pace_wpm": 140,
+        "tone": "Welcoming",
+        "energy": "Medium",
+        "modulation": "Lift gently on the lesson promise",
+        "emphasis_words": [
+          "for loop",
+          "predict"
+        ],
+        "pronunciation_notes": [],
+        "pause_before_seconds": 0.0,
+        "pause_after_seconds": 0.5
+      },
+      "on_screen_text": [
+        "Python For Loops",
+        "Repeat • Iterate • Predict"
+      ],
+      "visual_objects": [
+        "asset_branding",
+        "asset_title_card"
+      ],
+      "animation_notes": [
+        "Reveal the title, then the three learning verbs."
+      ],
+      "code_example_ids": [],
+      "timing_seconds": 14,
+      "transition": "Title fades into the motivation cards."
+    },
+    {
+      "id": "scene_02_motivation",
+      "type": "motivation",
+      "title": "Why Not Copy and Paste?",
+      "purpose": "Show why repetition needs a loop.",
+      "voiceover": "Suppose you want to print the squares of the numbers one to five. You could write five print statements. But what if you need one hundred numbers? Copying code is slow and easy to get wrong. A loop writes the action once and repeats it for you.",
+      "voice_delivery": {
+        "pace_wpm": 134,
+        "tone": "Curious",
+        "energy": "Medium",
+        "modulation": "Slow down on the one hundred numbers question",
+        "emphasis_words": [
+          "one hundred",
+          "once"
+        ],
+        "pronunciation_notes": [],
+        "pause_before_seconds": 0.0,
+        "pause_after_seconds": 0.5
+      },
+      "on_screen_text": [
+        "print(1 * 1) ... print(5 * 5)",
+        "What about 100 numbers?",
+        "Write it once: for"
+      ],
+      "visual_objects": [
+        "asset_branding",
+        "asset_comparison_cards"
+      ],
+      "animation_notes": [
+        "Stack five repeated print cards, then collapse them into one loop card."
+      ],
+      "code_example_ids": [],
+      "timing_seconds": 22,
+      "transition": "Loop card moves into the explanation."
+    },
+    {
+      "id": "scene_03_explanation",
+      "type": "explanation",
+      "title": "How One Iteration Works",
+      "purpose": "Build the mental model of a single pass.",
+      "voiceover": "A for loop walks through a sequence one item at a time. Python takes the first item and stores it in the loop variable. Then it runs the indented body. When the body finishes, Python moves to the next item and repeats. When there are no items left, the loop ends.",
+      "voice_delivery": {
+        "pace_wpm": 130,
+        "tone": "Patient",
+        "energy": "Medium",
+        "modulation": "Pause briefly after each stage of the cycle",
+        "emphasis_words": [
+          "one item at a time",
+          "indented body"
+        ],
+        "pronunciation_notes": [],
+        "pause_before_seconds": 0.0,
+        "pause_after_seconds": 0.5
+      },
+      "on_screen_text": [
+        "Take next item",
+        "Store in loop variable",
+        "Run the body",
+        "Repeat until done"
+      ],
+      "visual_objects": [
+        "asset_branding",
+        "asset_iteration_flow"
+      ],
+      "animation_notes": [
+        "Reveal the iteration cycle as a four-step flow, highlighting each step as it is named."
+      ],
+      "code_example_ids": [],
+      "timing_seconds": 26,
+      "transition": "Flow shrinks beside the range explanation."
+    },
+    {
+      "id": "scene_04_range",
+      "type": "explanation",
+      "title": "Counting With range",
+      "purpose": "Explain range start and stop rules.",
+      "voiceover": "To count, we often loop over range. Range of one comma six produces the numbers one, two, three, four, and five. The start value is included, but the stop value is excluded. That is why six never appears.",
+      "voice_delivery": {
+        "pace_wpm": 128,
+        "tone": "Clear",
+        "energy": "Medium",
+        "modulation": "Emphasize included and excluded",
+        "emphasis_words": [
+          "included",
+          "excluded"
+        ],
+        "pronunciation_notes": [],
+        "pause_before_seconds": 0.0,
+        "pause_after_seconds": 0.5
+      },
+      "on_screen_text": [
+        "range(1, 6)",
+        "1  2  3  4  5",
+        "start included • stop excluded"
+      ],
+      "visual_objects": [
+        "asset_branding",
+        "asset_number_strip"
+      ],
+      "animation_notes": [
+        "Show range(1, 6) and reveal the five produced numbers; cross out 6."
+      ],
+      "code_example_ids": [],
+      "timing_seconds": 20,
+      "transition": "Number strip slides under the code panel."
+    },
+    {
+      "id": "scene_05_code",
+      "type": "code_walkthrough",
+      "title": "Read the Program",
+      "purpose": "Connect the loop syntax to its behavior.",
+      "voiceover": "Here is the complete program. The first line says: for number in range one comma six, followed by a colon. The two indented lines form the loop body. The body computes the square of number, and then prints the number and its square. Indentation tells Python which lines belong to the loop.",
+      "voice_delivery": {
+        "pace_wpm": 126,
+        "tone": "Methodical",
+        "energy": "Medium",
+        "modulation": "Slow for each code line",
+        "emphasis_words": [
+          "colon",
+          "indented",
+          "body"
+        ],
+        "pronunciation_notes": [],
+        "pause_before_seconds": 0.0,
+        "pause_after_seconds": 0.5
+      },
+      "on_screen_text": [
+        "for number in range(1, 6):",
+        "Indented lines = loop body"
+      ],
+      "visual_objects": [
+        "asset_branding",
+        "asset_code_panel"
+      ],
+      "animation_notes": [
+        "Reveal the code and highlight the header, the square line, and the print line in order."
+      ],
+      "code_example_ids": [
+        "code_01_main"
+      ],
+      "timing_seconds": 28,
+      "transition": "Code panel stays as the trace begins."
+    },
+    {
+      "id": "scene_06_trace",
+      "type": "visual_trace",
+      "title": "Trace Every Pass",
+      "purpose": "Trace the loop variable and the output.",
+      "voiceover": "Let us trace it. First, number is one, so the program prints one and one. Next, number is two, and it prints two and four. Then three and nine. Then four and sixteen. Finally five and twenty five. Range has no more numbers, so the loop stops.",
+      "voice_delivery": {
+        "pace_wpm": 124,
+        "tone": "Focused",
+        "energy": "Medium",
+        "modulation": "Even rhythm for each iteration",
+        "emphasis_words": [
+          "one",
+          "twenty five",
+          "stops"
+        ],
+        "pronunciation_notes": [],
+        "pause_before_seconds": 0.0,
+        "pause_after_seconds": 0.5
+      },
+      "on_screen_text": [
+        "number: 1 → 2 → 3 → 4 → 5",
+        "output: 1 1, 2 4, 3 9, 4 16, 5 25"
+      ],
+      "visual_objects": [
+        "asset_branding",
+        "asset_trace_table"
+      ],
+      "animation_notes": [
+        "Move a marker across the numbers and append each output row."
+      ],
+      "code_example_ids": [
+        "code_01_main"
+      ],
+      "timing_seconds": 26,
+      "transition": "Output table fades as the mistake appears."
+    },
+    {
+      "id": "scene_07_mistake",
+      "type": "common_mistake",
+      "title": "The Indentation Mistake",
+      "purpose": "Show how missing indentation breaks the loop body.",
+      "voiceover": "A common mistake is forgetting to indent the loop body. If no line under the for header is indented, Python raises an IndentationError, because the header expects an indented block. Always indent the body, usually by four spaces.",
+      "voice_delivery": {
+        "pace_wpm": 128,
+        "tone": "Cautionary",
+        "energy": "Medium",
+        "modulation": "Slightly firmer on the error name",
+        "emphasis_words": [
+          "IndentationError",
+          "four spaces"
+        ],
+        "pronunciation_notes": [],
+        "pause_before_seconds": 0.0,
+        "pause_after_seconds": 0.5
+      },
+      "on_screen_text": [
+        "Wrong: nothing indented under for",
+        "IndentationError: expected an indented block",
+        "Correct: indent the body by 4 spaces"
+      ],
+      "visual_objects": [
+        "asset_branding",
+        "asset_error_card"
+      ],
+      "animation_notes": [
+        "Show a for header followed by an unindented print(n) with an error badge, then indent it."
+      ],
+      "code_example_ids": [],
+      "timing_seconds": 18,
+      "transition": "Error card clears for practice."
+    },
+    {
+      "id": "scene_08_practice",
+      "type": "practice",
+      "title": "Your Turn",
+      "purpose": "Let the learner predict output.",
+      "voiceover": "Your turn. What does for n in range two comma five, print n, display? Pause and predict. The answer is two, three, and four, because the stop value five is excluded.",
+      "voice_delivery": {
+        "pace_wpm": 126,
+        "tone": "Encouraging",
+        "energy": "Medium",
+        "modulation": "Leave a real pause after the question",
+        "emphasis_words": [
+          "predict",
+          "excluded"
+        ],
+        "pronunciation_notes": [],
+        "pause_before_seconds": 0.0,
+        "pause_after_seconds": 1.0
+      },
+      "on_screen_text": [
+        "for n in range(2, 5): print(n)",
+        "Output?",
+        "Answer: 2, 3, 4"
+      ],
+      "visual_objects": [
+        "asset_branding",
+        "asset_practice_card"
+      ],
+      "animation_notes": [
+        "Show the question, hold for three seconds, then reveal the answer."
+      ],
+      "code_example_ids": [],
+      "timing_seconds": 16,
+      "transition": "Answer card fades into the recap."
+    },
+    {
+      "id": "scene_09_summary",
+      "type": "summary",
+      "title": "What You Learned",
+      "purpose": "Recap the key rules.",
+      "voiceover": "Let us recap. A for loop processes one sequence item at a time. The loop variable changes on every iteration. Range includes its start and excludes its stop. And indented statements form the loop body.",
+      "voice_delivery": {
+        "pace_wpm": 132,
+        "tone": "Warm",
+        "energy": "Medium",
+        "modulation": "Settle the pace for the closing line",
+        "emphasis_words": [
+          "one item at a time",
+          "excludes its stop"
+        ],
+        "pronunciation_notes": [],
+        "pause_before_seconds": 0.0,
+        "pause_after_seconds": 0.5
+      },
+      "on_screen_text": [
+        "One item at a time",
+        "Variable changes each pass",
+        "range: start in, stop out",
+        "Indentation = body"
+      ],
+      "visual_objects": [
+        "asset_branding",
+        "asset_recap_cards"
+      ],
+      "animation_notes": [
+        "Reveal four recap cards in narration order."
+      ],
+      "code_example_ids": [],
+      "timing_seconds": 18,
+      "transition": "Recap cards fade into the closing line."
+    },
+    {
+      "id": "scene_10_outro",
+      "type": "outro",
+      "title": "Keep Building",
+      "purpose": "Close the lesson and point to the next topic.",
+      "voiceover": "Thank you for learning with AI Sankalp. Next, try while loops. Keep learning, and keep building.",
+      "voice_delivery": {
+        "pace_wpm": 136,
+        "tone": "Warm",
+        "energy": "Medium",
+        "modulation": "Settle gently on the closing line",
+        "emphasis_words": [
+          "keep building"
+        ],
+        "pronunciation_notes": [],
+        "pause_before_seconds": 0.0,
+        "pause_after_seconds": 0.8
+      },
+      "on_screen_text": [
+        "Keep Learning. Keep Building.",
+        "Next: while loops"
+      ],
+      "visual_objects": [
+        "asset_branding",
+        "asset_title_card"
+      ],
+      "animation_notes": [
+        "Reveal the closing line and a small next-step label."
+      ],
+      "code_example_ids": [],
+      "timing_seconds": 10,
+      "transition": "End of lesson."
+    }
+  ],
+  "code_examples": [
+    {
+      "id": "code_01_main",
+      "purpose": "Loop over range(1, 6) and print each number with its square.",
+      "runtime": "Python 3.9+",
+      "code": "for number in range(1, 6):\n    square = number * number\n    print(number, square)",
+      "explanation_steps": [
+        "range(1, 6) produces 1, 2, 3, 4, 5.",
+        "On each pass, number holds the current value.",
+        "The body computes number * number and stores it in square.",
+        "print outputs the number and its square on one line."
+      ],
+      "expected_output": "1 1\n2 4\n3 9\n4 16\n5 25\n",
+      "output_is_representative": false,
+      "beginner_mistakes": [
+        "Expecting range(1, 6) to include 6; the stop value is excluded.",
+        "Leaving the loop body unindented; with no indented line under the header, Python raises IndentationError.",
+        "Forgetting the colon at the end of the for header."
+      ],
+      "practice_variation": "Change the loop to range(2, 5) and predict the printed numbers."
+    }
+  ],
+  "assets": [
+    {
+      "id": "asset_branding",
+      "name": "AI Sankalp branding",
+      "purpose": "Persistent brand identity",
+      "suggested_filename": "ai_sankalp_logo.svg",
+      "description": "The supplied SVG rendered directly in the upper-right at its native proportions, plus a subtle footer.",
+      "source_strategy": "reuse",
+      "format": "SVG",
+      "manim_construction": null,
+      "image_generation_prompt": null
+    },
+    {
+      "id": "asset_title_card",
+      "name": "Lesson title card",
+      "purpose": "Introduce the lesson",
+      "suggested_filename": "title_card",
+      "description": "Gradient title, topic pill, and underline",
+      "source_strategy": "manim",
+      "format": "Manim primitives",
+      "manim_construction": "Text, RoundedRectangle, Line",
+      "image_generation_prompt": null
+    },
+    {
+      "id": "asset_comparison_cards",
+      "name": "Repeated print cards",
+      "purpose": "Show why copy and paste does not scale",
+      "suggested_filename": "comparison_cards",
+      "description": "Five stacked print cards collapsing into one loop card",
+      "source_strategy": "manim",
+      "format": "Manim primitives",
+      "manim_construction": "RoundedRectangle and Text cards",
+      "image_generation_prompt": null
+    },
+    {
+      "id": "asset_iteration_flow",
+      "name": "Iteration flow",
+      "purpose": "Show the four stages of one pass",
+      "suggested_filename": "iteration_flow",
+      "description": "Four connected step boxes",
+      "source_strategy": "manim",
+      "format": "Manim primitives",
+      "manim_construction": "RoundedRectangle, Arrow, Text",
+      "image_generation_prompt": null
+    },
+    {
+      "id": "asset_number_strip",
+      "name": "range number strip",
+      "purpose": "Show the values range produces",
+      "suggested_filename": "number_strip",
+      "description": "Five number cells with an excluded sixth value",
+      "source_strategy": "manim",
+      "format": "Manim primitives",
+      "manim_construction": "RoundedRectangle and Text cells",
+      "image_generation_prompt": null
+    },
+    {
+      "id": "asset_code_panel",
+      "name": "Code panel",
+      "purpose": "Display the runnable program",
+      "suggested_filename": "python_code_panel",
+      "description": "Syntax-highlighted code window",
+      "source_strategy": "manim",
+      "format": "Manim primitives",
+      "manim_construction": "Manim Code",
+      "image_generation_prompt": null
+    },
+    {
+      "id": "asset_trace_table",
+      "name": "Trace table",
+      "purpose": "Track number and square per iteration",
+      "suggested_filename": "trace_table",
+      "description": "Two-column table filled row by row",
+      "source_strategy": "manim",
+      "format": "Manim primitives",
+      "manim_construction": "Table of Text cells",
+      "image_generation_prompt": null
+    },
+    {
+      "id": "asset_error_card",
+      "name": "Indentation error card",
+      "purpose": "Show the common mistake",
+      "suggested_filename": "error_card",
+      "description": "Unindented code with an error badge, then the fixed version",
+      "source_strategy": "manim",
+      "format": "Manim primitives",
+      "manim_construction": "Code and RoundedRectangle",
+      "image_generation_prompt": null
+    },
+    {
+      "id": "asset_practice_card",
+      "name": "Practice card",
+      "purpose": "Pose the prediction question",
+      "suggested_filename": "practice_card",
+      "description": "Question card with a delayed answer",
+      "source_strategy": "manim",
+      "format": "Manim primitives",
+      "manim_construction": "RoundedRectangle and Text",
+      "image_generation_prompt": null
+    },
+    {
+      "id": "asset_recap_cards",
+      "name": "Recap cards",
+      "purpose": "Summarize the rules",
+      "suggested_filename": "recap_cards",
+      "description": "Four recap cards revealed in order",
+      "source_strategy": "manim",
+      "format": "Manim primitives",
+      "manim_construction": "RoundedRectangle and Text",
+      "image_generation_prompt": null
+    }
+  ],
+  "voiceover_segments": [
+    {
+      "id": "vo_01_intro",
+      "scene_id": "scene_01_intro",
+      "text": "Welcome to AI Sankalp. Today we will learn the Python for loop. By the end, you will be able to repeat an action for every item in a sequence, and predict exactly what the loop prints.",
+      "estimated_seconds": 14,
+      "pace_wpm": 140,
+      "tone": "Welcoming",
+      "energy": "Medium",
+      "modulation": "Lift gently on the lesson promise",
+      "emphasis_words": [
+        "for loop",
+        "predict"
+      ],
+      "pronunciation_notes": [],
+      "pause_before_seconds": 0.0,
+      "pause_after_seconds": 0.5
+    },
+    {
+      "id": "vo_02_motivation",
+      "scene_id": "scene_02_motivation",
+      "text": "Suppose you want to print the squares of the numbers one to five. You could write five print statements. But what if you need one hundred numbers? Copying code is slow and easy to get wrong. A loop writes the action once and repeats it for you.",
+      "estimated_seconds": 22,
+      "pace_wpm": 134,
+      "tone": "Curious",
+      "energy": "Medium",
+      "modulation": "Slow down on the one hundred numbers question",
+      "emphasis_words": [
+        "one hundred",
+        "once"
+      ],
+      "pronunciation_notes": [],
+      "pause_before_seconds": 0.0,
+      "pause_after_seconds": 0.5
+    },
+    {
+      "id": "vo_03_explanation",
+      "scene_id": "scene_03_explanation",
+      "text": "A for loop walks through a sequence one item at a time. Python takes the first item and stores it in the loop variable. Then it runs the indented body. When the body finishes, Python moves to the next item and repeats. When there are no items left, the loop ends.",
+      "estimated_seconds": 26,
+      "pace_wpm": 130,
+      "tone": "Patient",
+      "energy": "Medium",
+      "modulation": "Pause briefly after each stage of the cycle",
+      "emphasis_words": [
+        "one item at a time",
+        "indented body"
+      ],
+      "pronunciation_notes": [],
+      "pause_before_seconds": 0.0,
+      "pause_after_seconds": 0.5
+    },
+    {
+      "id": "vo_04_range",
+      "scene_id": "scene_04_range",
+      "text": "To count, we often loop over range. Range of one comma six produces the numbers one, two, three, four, and five. The start value is included, but the stop value is excluded. That is why six never appears.",
+      "estimated_seconds": 20,
+      "pace_wpm": 128,
+      "tone": "Clear",
+      "energy": "Medium",
+      "modulation": "Emphasize included and excluded",
+      "emphasis_words": [
+        "included",
+        "excluded"
+      ],
+      "pronunciation_notes": [],
+      "pause_before_seconds": 0.0,
+      "pause_after_seconds": 0.5
+    },
+    {
+      "id": "vo_05_code",
+      "scene_id": "scene_05_code",
+      "text": "Here is the complete program. The first line says: for number in range one comma six, followed by a colon. The two indented lines form the loop body. The body computes the square of number, and then prints the number and its square. Indentation tells Python which lines belong to the loop.",
+      "estimated_seconds": 28,
+      "pace_wpm": 126,
+      "tone": "Methodical",
+      "energy": "Medium",
+      "modulation": "Slow for each code line",
+      "emphasis_words": [
+        "colon",
+        "indented",
+        "body"
+      ],
+      "pronunciation_notes": [],
+      "pause_before_seconds": 0.0,
+      "pause_after_seconds": 0.5
+    },
+    {
+      "id": "vo_06_trace",
+      "scene_id": "scene_06_trace",
+      "text": "Let us trace it. First, number is one, so the program prints one and one. Next, number is two, and it prints two and four. Then three and nine. Then four and sixteen. Finally five and twenty five. Range has no more numbers, so the loop stops.",
+      "estimated_seconds": 26,
+      "pace_wpm": 124,
+      "tone": "Focused",
+      "energy": "Medium",
+      "modulation": "Even rhythm for each iteration",
+      "emphasis_words": [
+        "one",
+        "twenty five",
+        "stops"
+      ],
+      "pronunciation_notes": [],
+      "pause_before_seconds": 0.0,
+      "pause_after_seconds": 0.5
+    },
+    {
+      "id": "vo_07_mistake",
+      "scene_id": "scene_07_mistake",
+      "text": "A common mistake is forgetting to indent the loop body. If no line under the for header is indented, Python raises an IndentationError, because the header expects an indented block. Always indent the body, usually by four spaces.",
+      "estimated_seconds": 18,
+      "pace_wpm": 128,
+      "tone": "Cautionary",
+      "energy": "Medium",
+      "modulation": "Slightly firmer on the error name",
+      "emphasis_words": [
+        "IndentationError",
+        "four spaces"
+      ],
+      "pronunciation_notes": [],
+      "pause_before_seconds": 0.0,
+      "pause_after_seconds": 0.5
+    },
+    {
+      "id": "vo_08_practice",
+      "scene_id": "scene_08_practice",
+      "text": "Your turn. What does for n in range two comma five, print n, display? Pause and predict. The answer is two, three, and four, because the stop value five is excluded.",
+      "estimated_seconds": 16,
+      "pace_wpm": 126,
+      "tone": "Encouraging",
+      "energy": "Medium",
+      "modulation": "Leave a real pause after the question",
+      "emphasis_words": [
+        "predict",
+        "excluded"
+      ],
+      "pronunciation_notes": [],
+      "pause_before_seconds": 0.0,
+      "pause_after_seconds": 1.0
+    },
+    {
+      "id": "vo_09_summary",
+      "scene_id": "scene_09_summary",
+      "text": "Let us recap. A for loop processes one sequence item at a time. The loop variable changes on every iteration. Range includes its start and excludes its stop. And indented statements form the loop body.",
+      "estimated_seconds": 18,
+      "pace_wpm": 132,
+      "tone": "Warm",
+      "energy": "Medium",
+      "modulation": "Settle the pace for the closing line",
+      "emphasis_words": [
+        "one item at a time",
+        "excludes its stop"
+      ],
+      "pronunciation_notes": [],
+      "pause_before_seconds": 0.0,
+      "pause_after_seconds": 0.5
+    },
+    {
+      "id": "vo_10_outro",
+      "scene_id": "scene_10_outro",
+      "text": "Thank you for learning with AI Sankalp. Next, try while loops. Keep learning, and keep building.",
+      "estimated_seconds": 10,
+      "pace_wpm": 136,
+      "tone": "Warm",
+      "energy": "Medium",
+      "modulation": "Settle gently on the closing line",
+      "emphasis_words": [
+        "keep building"
+      ],
+      "pronunciation_notes": [],
+      "pause_before_seconds": 0.0,
+      "pause_after_seconds": 0.8
+    }
+  ],
+  "tags": [
+    "Python",
+    "for loop",
+    "range",
+    "iteration",
+    "beginner programming",
+    "AI Sankalp"
+  ],
+  "output_filename": "python_for_loops.mp4",
+  "output_folder_name": "python_for_loops",
+  "visual_template": "standard",
+  "branding": {
+    "logo_asset_id": "asset_branding",
+    "logo_position": "upper_right_safe_area",
+    "footer_text": "AI SANKALP • VISUAL LEARNING",
+    "palette": {
+      "background": "#071321",
+      "panel": "#10243A",
+      "primary": "#1473E6",
+      "cyan": "#21D4FD",
+      "mint": "#55E6C1",
+      "gold": "#FFC857",
+      "text": "#F5F9FF",
+      "muted": "#9EB3C7",
+      "warning": "#FF6B6B"
+    }
+  },
+  "generator_compatibility": {
+    "visual_template": "standard",
+    "sections": [
+      {
+        "title": "Why loops matter",
+        "bullets": [
+          "A loop repeats an action without duplicating code.",
+          "For loops are useful when working with a sequence of items.",
+          "The loop body runs once for every item."
+        ]
+      },
+      {
+        "title": "Follow the iteration",
+        "bullets": [
+          "Python takes the first item from the sequence.",
+          "The loop variable stores the current item.",
+          "After the body runs, Python moves to the next item."
+        ]
+      },
+      {
+        "title": "Use range safely",
+        "bullets": [
+          "range(1, 6) produces the numbers 1 through 5.",
+          "The start value is included, but the stop value is excluded.",
+          "Indentation tells Python which statements belong to the loop."
+        ]
+      }
+    ],
+    "code_example": "for number in range(1, 6):\n    square = number * number\n    print(number, square)",
+    "summary": [
+      "A for loop processes one sequence item at a time.",
+      "The loop variable changes on every iteration.",
+      "range includes its start and excludes its stop.",
+      "Indented statements form the loop body."
+    ],
+    "output_video_name": "python_for_loops",
+    "voiceover": {
+      "enabled": true,
+      "language": "en",
+      "tld": "co.in",
+      "speed": 1.0,
+      "human_delivery_notes": "Use short sentences and punctuation-based pauses; gTTS does not support reliable pitch or emotion controls."
+    }
+  }
+}
