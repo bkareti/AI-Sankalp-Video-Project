@@ -17,7 +17,17 @@
         "Python takes the first item from the sequence.",
         "The loop variable stores the current item.",
         "After the body runs, Python moves to the next item."
-      ]
+      ],
+      "visual": {
+        "type": "flow",
+        "title": "One pass of the loop",
+        "items": [
+          "Take the next item",
+          "Store it in the loop variable",
+          "Run the indented body",
+          "Move to the next item"
+        ]
+      }
     },
     {
       "title": "Use range safely",
@@ -25,7 +35,19 @@
         "range(1, 6) produces the numbers 1 through 5.",
         "The start value is included, but the stop value is excluded.",
         "Indentation tells Python which statements belong to the loop."
-      ]
+      ],
+      "visual": {
+        "type": "table",
+        "title": "for number in range(1, 6)",
+        "columns": ["number", "square"],
+        "rows": [
+          ["1", "1"],
+          ["2", "4"],
+          ["3", "9"],
+          ["4", "16"],
+          ["5", "25"]
+        ]
+      }
     }
   ],
   "code_example": "for number in range(1, 6):\n    square = number * number\n    print(number, square)",
@@ -43,4 +65,3 @@
     "speed": 1.0
   }
 }
-

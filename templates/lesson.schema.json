@@ -65,10 +65,20 @@
                 {"type": "array", "minItems": 1, "items": {"type": "string"}}
               ]
             },
-            "narration": {"type": "string"}
+            "narration": {"type": "string"},
+            "visual": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/visual"}]}
           }
         }
       ]
+    },
+    "visual": {
+      "description": "Optional explicit section visual. type selects the primitive; other keys are its parameters, validated by ai_sankalp/primitives/specs.py. See README 'Section visuals'.",
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {"type": "string", "enum": ["flow", "steps", "compare", "table"]},
+        "title": {"type": "string", "maxLength": 48}
+      }
     },
     "voiceover": {
       "oneOf": [

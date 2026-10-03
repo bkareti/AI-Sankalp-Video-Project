@@ -3,8 +3,9 @@ from __future__ import annotations
 import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
+from .primitives.specs import check_visual
 from .template_registry import TEMPLATE_NAMES
 
 
@@ -101,8 +102,11 @@ class LessonSection:
     title: str
     bullets: List[str]
     narration: str = ""
+    # Optional explicit visual (see ai_sankalp/primitives/specs.py). None means
+    # the slide uses a full-width bullet layout; nothing is invented from text.
+    visual: Optional[Dict[str, Any]] = None
 
-    ACCEPTED_FIELDS = frozenset({"title", "bullets", "narration"})
+    ACCEPTED_FIELDS = frozenset({"title", "bullets", "narration", "visual"})
 
     @classmethod
     def from_value(cls, value: Any, index: int) -> "LessonSection":
@@ -117,7 +121,14 @@ class LessonSection:
         title = str(value.get("title", f"Step {index}")).strip()
         if not title or not bullets:
             raise LessonValidationError(f"section {index} needs a title and at least one bullet")
-        return cls(title=title, bullets=bullets, narration=str(value.get("narration", "")).strip())
+        visual = None
+        if value.get("visual") is not None:
+            visual, problems = check_visual(value["visual"])
+            if problems:
+                raise LessonValidationError(f"section {index} visual: " + "; ".join(problems))
+        return cls(
+            title=title, bullets=bullets, narration=str(value.get("narration", "")).strip(), visual=visual,
+        )
 
 
 @dataclass
@@ -165,6 +176,7 @@ class LessonConfig:
                     title=section.title if index == 0 else f"{section.title} (continued)",
                     bullets=bullets,
                     narration=section.narration if index == 0 else "",
+                    visual=section.visual if index == 0 else None,
                 ))
 
         missing = [name for name, value in (
