@@ -58,6 +58,15 @@
       },
       "on_screen_text": ["C++ Arrays", "Store • Access • Traverse"],
       "visual_objects": ["asset_branding", "asset_title_card"],
+      "visuals": [
+        {
+          "type": "title_card",
+          "eyebrow": "C++  •  MEMORY VISUALIZED",
+          "heading": "ARRAYS",
+          "subtitle": "Store  •  Access  •  Traverse",
+          "lane_values": ["70", "85", "90", "75", "88"]
+        }
+      ],
       "animation_notes": ["Reveal the title, then the three learning verbs."],
       "code_example_ids": [],
       "timing_seconds": 17,
@@ -81,6 +90,17 @@
       },
       "on_screen_text": ["mark1, mark2, mark3, ...", "What about 100 students?", "One name: marks"],
       "visual_objects": ["asset_branding", "asset_comparison_cards", "asset_array_cells"],
+      "visuals": [
+        {
+          "type": "card_merge",
+          "label": "01 / WHY ARRAYS",
+          "title": "From scattered values to one data lane",
+          "cards": ["mark1  =  70", "mark2  =  85", "mark3  =  90", "mark4  =  75", "mark5  =  88"],
+          "callout": "5 names  →  1 array",
+          "target_name": "marks",
+          "target_values": ["70", "85", "90", "75", "88"]
+        }
+      ],
       "animation_notes": ["Stack separate variable cards, show a 100-student warning, then transform them into one array strip."],
       "code_example_ids": [],
       "timing_seconds": 30,
@@ -104,6 +124,16 @@
       },
       "on_screen_text": ["marks", "5 elements", "same type: int", "fixed size", "consecutive storage"],
       "visual_objects": ["asset_branding", "asset_array_cells", "asset_memory_strip"],
+      "visuals": [
+        {
+          "type": "array_lane",
+          "label": "02 / MENTAL MODEL",
+          "title": "A fixed-size lane in memory",
+          "values": ["70", "85", "90", "75", "88"],
+          "addresses": {"start": 4096, "step": 4},
+          "chips": ["same type  •  int", "fixed size  •  5", "consecutive storage"]
+        }
+      ],
       "animation_notes": ["Reveal five equal cells, label their shared type and fixed size, then align them over consecutive memory slots."],
       "code_example_ids": [],
       "timing_seconds": 34,
@@ -127,6 +157,33 @@
       },
       "on_screen_text": ["int marks[5] = {70, 85, 90, 75, 88};", "index: 0  1  2  3  4", "marks[2] = 90"],
       "visual_objects": ["asset_branding", "asset_array_cells", "asset_code_panel"],
+      "visuals": [
+        {
+          "type": "token_breakdown",
+          "label": "03 / BUILD THE ARRAY",
+          "title": "Watch the declaration assemble",
+          "tokens": [
+            {"text": "int", "role": "type"},
+            {"text": "marks", "role": "name"},
+            {"text": "[5]", "role": "size"},
+            {"text": "{70, 85, 90, 75, 88}", "role": "starting values"}
+          ],
+          "code_line": "int marks[5] = {70, 85, 90, 75, 88};",
+          "values": ["70", "85", "90", "75", "88"],
+          "highlight_index": 2
+        },
+        {
+          "type": "index_access",
+          "timing": "after_narration",
+          "label": "04 / ZERO-BASED INDEX",
+          "title": "The index is an offset from the start",
+          "values": ["70", "85", "90", "75", "88"],
+          "index": 2,
+          "access_label": "marks[2]",
+          "result_label": "value  =  90",
+          "offset_label": "start  +  2 steps"
+        }
+      ],
       "animation_notes": ["Highlight type, name, and size in order; add index labels; frame index two and reveal ninety."],
       "code_example_ids": ["code_01_main"],
       "timing_seconds": 40,
@@ -150,6 +207,15 @@
       },
       "on_screen_text": ["Complete C++17 program", "Expected output: Third mark: 90 | All marks: 70 85 90 75 88"],
       "visual_objects": ["asset_branding", "asset_code_panel"],
+      "visuals": [
+        {
+          "type": "code_walkthrough",
+          "label": "05 / CODE TO MACHINE",
+          "title": "A tiny program, three clear jobs",
+          "code_example_id": "code_01_main",
+          "steps": ["01  DECLARE", "02  READ [2]", "03  REPEAT"]
+        }
+      ],
       "animation_notes": ["Reveal the program, then highlight include, declaration, direct access, loop header, and print statement in execution order."],
       "code_example_ids": ["code_01_main"],
       "timing_seconds": 42,
@@ -173,6 +239,17 @@
       },
       "on_screen_text": ["i: 0 → 1 → 2 → 3 → 4", "output: 70 85 90 75 88", "i = 5 → condition false → stop"],
       "visual_objects": ["asset_branding", "asset_array_cells", "asset_trace_marker"],
+      "visuals": [
+        {
+          "type": "loop_trace",
+          "label": "06 / LIVE TRACE",
+          "title": "Follow i as the data flows",
+          "values": ["70", "85", "90", "75", "88"],
+          "variable": "i",
+          "output_title": "OUTPUT STREAM",
+          "stop_label": "i = 5  →  STOP"
+        }
+      ],
       "animation_notes": ["Move a labeled marker across the five cells and append each value to output; show a stop sign when i reaches five."],
       "code_example_ids": ["code_01_main"],
       "timing_seconds": 43,
@@ -196,6 +273,18 @@
       },
       "on_screen_text": ["Wrong: i <= 5", "marks[5] ✗", "Undefined behavior", "Correct: i < 5"],
       "visual_objects": ["asset_branding", "asset_array_cells", "asset_bounds_warning"],
+      "visuals": [
+        {
+          "type": "bounds_check",
+          "label": "07 / SAFETY CHECK",
+          "title": "The invisible wall after index 4",
+          "values": ["70", "85", "90", "75", "88"],
+          "ghost_label": "[5]",
+          "wrong_label": "WRONG   i <= 5",
+          "correct_label": "SAFE   i < 5",
+          "warning": "UNDEFINED BEHAVIOR"
+        }
+      ],
       "animation_notes": ["Show a sixth ghost cell crossed out; label the incorrect condition, then replace it with the safe condition."],
       "code_example_ids": ["code_01_main"],
       "timing_seconds": 36,
@@ -219,6 +308,18 @@
       },
       "on_screen_text": ["int scores[4] = {12, 18, 21, 15};", "scores[3] = ?", "i < ?", "Answer: 15 and 4"],
       "visual_objects": ["asset_branding", "asset_practice_card", "asset_array_cells"],
+      "visuals": [
+        {
+          "type": "practice_reveal",
+          "label": "08 / YOUR TURN",
+          "title": "Can you predict the access?",
+          "values": ["12", "18", "21", "15"],
+          "question": "scores[3] = ?      loop bound: i < ?",
+          "answer": "scores[3] = 15      and      i < 4",
+          "highlight_index": 3,
+          "countdown": 3
+        }
+      ],
       "animation_notes": ["Show the question without the answer, hold for three seconds, then reveal index labels and the answer."],
       "code_example_ids": ["code_01_main"],
       "timing_seconds": 31,
@@ -242,6 +343,15 @@
       },
       "on_screen_text": ["Fixed size • Same type", "Indexes: 0 to n − 1", "Access: name[index]", "Safe loop: i < size"],
       "visual_objects": ["asset_branding", "asset_recap_cards"],
+      "visuals": [
+        {
+          "type": "concept_map",
+          "label": "09 / MEMORY MAP",
+          "title": "One picture to remember it all",
+          "center": "ARRAY",
+          "nodes": ["fixed size", "same type", "index 0 → n-1", "loop i < size"]
+        }
+      ],
       "animation_notes": ["Reveal four recap cards in the same order as the narration."],
       "code_example_ids": [],
       "timing_seconds": 25,
@@ -265,6 +375,14 @@
       },
       "on_screen_text": ["Keep Learning. Keep Building.", "Next: std::array"],
       "visual_objects": ["asset_branding", "asset_title_card"],
+      "visuals": [
+        {
+          "type": "outro_card",
+          "heading": "YOU CAN SEE THE MEMORY NOW",
+          "subtitle": "Declare  •  Access  •  Traverse safely",
+          "next_step": "NEXT SIGNAL  →  std::array"
+        }
+      ],
       "animation_notes": ["Reveal the closing line and a small next-step label."],
       "code_example_ids": [],
       "timing_seconds": 14,

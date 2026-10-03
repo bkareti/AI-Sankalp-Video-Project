@@ -1,0 +1,14 @@
+{
+  "narration": "A three-element list ends at index two. Asking for index three is a mistake. Python raises an IndexError. Stay below the length.",
+  "language": "Python",
+  "visual": {
+    "type": "bounds_check",
+    "label": "07 / SAFETY",
+    "title": "The list ends at index 2",
+    "values": ["18", "21", "19"],
+    "ghost_label": "[3]",
+    "wrong_label": "WRONG   ages[3]",
+    "correct_label": "SAFE   ages[2]",
+    "warning": "INDEXERROR"
+  }
+}

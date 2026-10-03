@@ -1,0 +1,18 @@
+{
+  "narration": "Here is the program. First we create the list. Then we sort it in place. Finally we print it.",
+  "language": "Python",
+  "visual": {
+    "type": "code_walkthrough",
+    "label": "05 / CODE",
+    "title": "Three lines, three jobs",
+    "steps": ["01  CREATE", "02  SORT", "03  PRINT"]
+  },
+  "code_examples": [
+    {
+      "id": "code_01_main",
+      "purpose": "Sort a list",
+      "code": "values = [3, 1, 2]\nvalues.sort()\nprint(values)",
+      "expected_output": "[1, 2, 3]\n"
+    }
+  ]
+}

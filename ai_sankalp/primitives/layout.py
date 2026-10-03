@@ -11,6 +11,7 @@ from ..brand import BrandFonts
 
 
 TEXT_OVERSAMPLE = 4
+CODE_FALLBACK_WRAP = 72
 
 
 def fit(mobject, max_width: float, max_height: Optional[float] = None):
@@ -104,4 +105,16 @@ def code_block(code: str, language: str, fonts: BrandFonts):
             paragraph_config={"font": fonts.mono},
         )
     except Exception:
-        return text(wrap_text(code, 70), fonts, 19, mono=True)
+        return text(wrap_text(code, CODE_FALLBACK_WRAP), fonts, 19, mono=True)
+
+
+PYGMENTS_ALIASES = {
+    "c++": "cpp", "cpp": "cpp", "cplusplus": "cpp", "c plus plus": "cpp",
+    "c#": "csharp", "javascript": "javascript", "js": "javascript",
+    "python": "python", "sql": "sql", "java": "java", "c": "c",
+}
+
+
+def pygments_language(name: str) -> str:
+    """Pygments lexer name for a lesson language ("text" when unknown)."""
+    return PYGMENTS_ALIASES.get(" ".join(str(name).lower().split()), "text")

@@ -83,6 +83,11 @@ def _ids(items: Any) -> List[Any]:
     return [item.get("id") for item in items if isinstance(item, dict)]
 
 
+def _list(value: Any) -> List[Any]:
+    """A list field, or [] when the schema check will already report its type."""
+    return value if isinstance(value, list) else []
+
+
 def semantic_issues(package: Dict[str, Any]) -> List[SchemaIssue]:
     """Cross-reference checks that JSON Schema cannot express."""
     issues: List[SchemaIssue] = []
@@ -103,13 +108,13 @@ def semantic_issues(package: Dict[str, Any]) -> List[SchemaIssue]:
     for index, scene in enumerate(scenes):
         if not isinstance(scene, dict):
             continue
-        for item_index, asset_id in enumerate(scene.get("visual_objects") or []):
+        for item_index, asset_id in enumerate(_list(scene.get("visual_objects"))):
             if asset_id not in asset_ids:
                 issues.append(SchemaIssue(
                     f"scenes[{index}].visual_objects[{item_index}]",
                     f"'{asset_id}' does not match any assets[].id",
                 ))
-        for item_index, code_id in enumerate(scene.get("code_example_ids") or []):
+        for item_index, code_id in enumerate(_list(scene.get("code_example_ids"))):
             if code_id not in code_ids:
                 issues.append(SchemaIssue(
                     f"scenes[{index}].code_example_ids[{item_index}]",
@@ -149,11 +154,26 @@ def semantic_issues(package: Dict[str, Any]) -> List[SchemaIssue]:
     return issues
 
 
+def plan_schema_issues(package: Dict[str, Any]) -> List[SchemaIssue]:
+    """Primitive-plan problems (scenes[].visuals and defaults) as field issues."""
+    from .primitives.planner import lesson_plan_issues
+
+    issues = []
+    for issue in lesson_plan_issues(package):
+        path, _, message = issue.partition(": ")
+        issues.append(SchemaIssue(path, message))
+    return issues
+
+
 def validate_package(package: Any) -> List[SchemaIssue]:
     """Return schema and cross-reference issues (empty when the package is valid)."""
     issues = validate(package, load_schema(PACKAGE_SCHEMA))
     if isinstance(package, dict):
+        schema_ok = not issues
         issues.extend(semantic_issues(package))
+        if schema_ok:
+            # Planning assumes well-typed fields, so it only runs on a schema-valid package.
+            issues.extend(plan_schema_issues(package))
     return issues
 
 

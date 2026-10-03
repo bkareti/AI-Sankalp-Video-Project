@@ -1,0 +1,11 @@
+{
+  "narration": "Let us recap. Lists are ordered. Indexes start at zero. Stay inside the bounds.",
+  "language": "Python",
+  "visual": {
+    "type": "concept_map",
+    "label": "09 / RECAP",
+    "title": "Lists at a glance",
+    "center": "LIST",
+    "nodes": ["ordered", "index from 0", "stay in bounds"]
+  }
+}

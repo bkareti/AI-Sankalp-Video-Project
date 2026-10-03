@@ -7,11 +7,16 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict
 
-from manim import DOWN, LEFT, RIGHT, UP, Arrow, Circle, Line, RoundedRectangle, VGroup
+from manim import DOWN, LEFT, RIGHT, UP, Arrow, Circle, FadeIn, Line, RoundedRectangle, VGroup
 
 from .. import brand
 from ..brand import BrandFonts
+from .base import BuiltVisual, PrimitiveContext, play, with_header
 from .layout import fit, text, wrap_text
+
+# Natural size when a diagram fills a scene body instead of a section panel.
+SCENE_WIDTH = 8.0
+SCENE_HEIGHT = 4.6
 
 
 def flow_diagram(spec: Dict[str, Any], fonts: BrandFonts, width: float, height: float) -> VGroup:
@@ -122,3 +127,13 @@ SECTION_BUILDERS: Dict[str, Callable[[Dict[str, Any], BrandFonts, float, float],
 
 def build_section_visual(spec: Dict[str, Any], fonts: BrandFonts, width: float, height: float) -> VGroup:
     return SECTION_BUILDERS[spec["type"]](spec, fonts, width, height)
+
+
+def diagram_builder(kind: str) -> Callable[[Dict[str, Any], PrimitiveContext], BuiltVisual]:
+    """Adapt a static diagram to the primitive interface: one fade-in beat."""
+    def build(spec: Dict[str, Any], ctx: PrimitiveContext) -> BuiltVisual:
+        group = SECTION_BUILDERS[kind](spec, ctx.fonts, SCENE_WIDTH, SCENE_HEIGHT).move_to(DOWN * 0.2)
+        return BuiltVisual([group], [lambda scene, d: play(scene, with_header(ctx, [FadeIn(group, shift=UP * 0.1)]), d)])
+
+    build.__name__ = kind
+    return build

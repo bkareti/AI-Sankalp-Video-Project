@@ -44,7 +44,7 @@
     "output": {"$ref": "#/$defs/text", "deprecated": true, "description": "Alias of output_video_name."},
     "voiceover": {"$ref": "#/$defs/voiceover"},
     "visual_template": {
-      "description": "standard works for any topic. futuristic_array needs a rich lesson package and currently supports only C++ array lessons.",
+      "description": "standard works for any topic from the reduced config. futuristic_array needs a rich lesson package and draws every package scene with data-driven primitives (see docs/templates.md).",
       "type": "string",
       "enum": ["standard", "futuristic_array"]
     }
@@ -76,7 +76,7 @@
       "type": "object",
       "required": ["type"],
       "properties": {
-        "type": {"type": "string", "enum": ["flow", "steps", "compare", "table"]},
+        "type": {"type": "string", "enum": ["flow", "steps", "compare", "table", "array_lane", "loop_trace", "concept_map"]},
         "title": {"type": "string", "maxLength": 48}
       }
     },

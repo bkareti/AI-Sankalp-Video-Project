@@ -96,14 +96,14 @@ class BackwardCompatibilityTests(unittest.TestCase):
         self.assertEqual("flow", lesson.sections[0].visual["type"])
         self.assertIsNone(lesson.sections[1].visual)
 
-    def test_sample_uses_full_and_split_layouts(self):
+    def test_sample_uses_full_and_split_layouts(self):  # full, loop_trace, table
         lesson = load_config(ROOT / "examples" / "python_for_loops.json")
         self.assertEqual(["full", "split", "split"], [manim_scene.section_layout(s) for s in lesson.sections])
 
 
 class SectionVisualTests(unittest.TestCase):
     def test_each_visual_type_parses_and_builds(self):
-        self.assertEqual(set(VISUALS), set(specs.SPEC_TYPES))
+        self.assertTrue(set(VISUALS) <= set(specs.STANDARD_COMPATIBLE))
         for kind, visual in VISUALS.items():
             with self.subTest(kind=kind):
                 section = lesson_with(visual).sections[0]
@@ -178,10 +178,10 @@ class SectionVisualTests(unittest.TestCase):
                 with self.assertRaisesRegex(LessonValidationError, "section 1 visual"):
                     lesson_with(visual)
 
-    def test_schema_enum_matches_spec_types(self):
+    def test_schema_enum_matches_standard_compatible_types(self):
         for name in ("lesson.schema.json", "lesson_package.schema.json"):
             enum = load_schema(name)["$defs"]["visual"]["properties"]["type"]["enum"]
-            self.assertEqual(list(specs.SPEC_TYPES), enum)
+            self.assertEqual(list(specs.STANDARD_COMPATIBLE), enum)
 
     def test_specs_module_is_manim_free(self):
         source = (ROOT / "ai_sankalp" / "primitives" / "specs.py").read_text(encoding="utf-8")

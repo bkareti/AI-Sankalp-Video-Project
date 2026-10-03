@@ -93,6 +93,10 @@
         "voice_delivery": {"$ref": "#/$defs/voiceDelivery"},
         "on_screen_text": {"$ref": "#/$defs/stringList"},
         "visual_objects": {"$ref": "#/$defs/stringList"},
+        "visuals": {
+          "description": "Optional primitives drawn by the futuristic_array template, in order. Without it, a default is chosen by scene type.",
+          "type": "array", "minItems": 1, "maxItems": 3, "items": {"$ref": "#/$defs/sceneVisual"}
+        },
         "animation_notes": {"$ref": "#/$defs/stringList"},
         "code_example_ids": {"$ref": "#/$defs/stringList"},
         "timing_seconds": {"type": "number", "minimum": 1, "maximum": 600},
@@ -190,12 +194,23 @@
         }
       ]
     },
+    "sceneVisual": {
+      "description": "A primitive for a package scene. type selects it; other keys are its parameters, validated by ai_sankalp/primitives/specs.py. See docs/templates.md.",
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {"type": "string", "enum": ["flow", "steps", "compare", "table", "title_card", "card_merge", "array_lane", "token_breakdown", "index_access", "code_walkthrough", "loop_trace", "bounds_check", "practice_reveal", "concept_map", "outro_card", "bullet_card"]},
+        "title": {"type": "string", "maxLength": 48},
+        "label": {"type": "string", "maxLength": 40},
+        "timing": {"type": "string", "enum": ["narrated", "after_narration"]}
+      }
+    },
     "visual": {
       "description": "Optional explicit section visual. type selects the primitive; other keys are its parameters, validated by ai_sankalp/primitives/specs.py. See README 'Section visuals'.",
       "type": "object",
       "required": ["type"],
       "properties": {
-        "type": {"type": "string", "enum": ["flow", "steps", "compare", "table"]},
+        "type": {"type": "string", "enum": ["flow", "steps", "compare", "table", "array_lane", "loop_trace", "concept_map"]},
         "title": {"type": "string", "maxLength": 48}
       }
     },

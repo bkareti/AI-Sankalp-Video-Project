@@ -1,0 +1,10 @@
+{
+  "narration": "Sorting follows three steps. Compare. Swap. Repeat.",
+  "language": "Python",
+  "visual": {
+    "type": "flow",
+    "label": "11 / FLOW",
+    "title": "How a simple sort proceeds",
+    "items": ["Compare neighbours", "Swap if out of order", "Repeat until sorted"]
+  }
+}

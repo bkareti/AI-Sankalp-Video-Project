@@ -1,0 +1,14 @@
+{
+  "narration": "Your turn. What is ages at index two? Pause and think. The answer is nineteen.",
+  "language": "Python",
+  "visual": {
+    "type": "practice_reveal",
+    "label": "08 / PRACTICE",
+    "title": "Predict the value",
+    "values": ["18", "21", "19"],
+    "question": "ages[2] = ?",
+    "answer": "ages[2] = 19",
+    "highlight_index": 2,
+    "countdown": 3
+  }
+}
