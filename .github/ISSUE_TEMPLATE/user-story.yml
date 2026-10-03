@@ -1,0 +1,62 @@
+name: User story
+description: A feature or improvement an agent or human will implement
+title: "[Story] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Write this so an agent with no other context can implement it. Acceptance criteria must be testable.
+  - type: textarea
+    id: story
+    attributes:
+      label: Story
+      description: "As a <who>, I want <what>, so that <why>."
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: One testable criterion per line, numbered AC1, AC2, and so on.
+      placeholder: |
+        AC1. A clean clone renders the sample with the documented commands.
+        AC2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+      description: What this story must not change.
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification plan
+      description: Unit tests, commands, and whether a render plus frame inspection is needed.
+    validations:
+      required: true
+  - type: dropdown
+    id: visual
+    attributes:
+      label: Does this change what the video looks or sounds like?
+      options:
+        - "No"
+        - "Yes: needs render evidence and a human review checkpoint"
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - P0
+        - P1
+        - P2
+    validations:
+      required: true
+  - type: input
+    id: dependencies
+    attributes:
+      label: Depends on
+      placeholder: "#12, #15"

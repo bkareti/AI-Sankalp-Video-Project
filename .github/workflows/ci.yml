@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Lint, compile, unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: System libraries for Manim
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config python3-dev libcairo2-dev libpango1.0-dev ffmpeg
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt -r requirements-dev.txt
+      - name: Lint
+        run: ruff check .
+      - name: Compile
+        run: python -m compileall -q ai_sankalp scenes app.py scripts
+      - name: Dependency check
+        run: python app.py check
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+
+  render-smoke:
+    name: Offline render and video QA
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: System libraries for Manim
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config python3-dev libcairo2-dev libpango1.0-dev ffmpeg
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt -r requirements-dev.txt
+      - name: Render the sample without narration
+        run: python app.py sample --render --no-voiceover --quality low
+      - name: Verify the video
+        run: |
+          python scripts/qa/check_video.py generated/videos/python_for_loops.mp4 \
+            --profile preview --no-audio-required \
+            --report qa_report.json --frames-dir qa_frames
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: render-evidence
+          path: |
+            qa_report.json
+            qa_frames/
+            generated/videos/python_for_loops.mp4
+          if-no-files-found: warn
+          retention-days: 14
