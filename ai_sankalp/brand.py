@@ -127,6 +127,26 @@ def brand_fonts() -> BrandFonts:
     return BrandFonts(sans=resolve_font(sans_chain, available), mono=resolve_font(mono_chain, available))
 
 
+# Font files for burned-in captions (Pillow needs a file, not a family name).
+CAPTION_FONT_FILES: Tuple[str, ...] = (
+    "/System/Library/Fonts/Avenir Next.ttc",
+    "/System/Library/Fonts/Helvetica.ttc",
+    "/System/Library/Fonts/Supplemental/Arial.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/TTF/DejaVuSans.ttf",
+    "C:\\Windows\\Fonts\\arial.ttf",
+)
+
+
+def caption_font_file(candidates: Sequence[str] = CAPTION_FONT_FILES) -> Optional[Path]:
+    """A bundled sans font if present, else the first known system font file."""
+    bundled = [path for path in bundled_font_files() if "mono" not in path.name.lower()]
+    for path in bundled + [Path(candidate) for candidate in candidates]:
+        if path.is_file():
+            return path
+    return None
+
+
 # --- Frame, safe areas, logo, footer (Manim units; frame is 14.22 x 8) --------
 FRAME_WIDTH = 8.0 * 16 / 9  # 14.22...
 FRAME_HEIGHT = 8.0

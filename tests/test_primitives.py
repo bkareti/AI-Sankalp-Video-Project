@@ -224,12 +224,19 @@ class FakeScene:
         self.mobjects = []
         self.foreground_mobjects = []
         self.calls = []
+        self.subcaptions = []
+        self.time = 0.0
 
     def play(self, *animations, run_time=None, **kwargs):
         self.calls.append(("play", run_time))
+        self.time += run_time or 1.0
 
     def wait(self, duration=None):
         self.calls.append(("wait", duration))
+        self.time += duration or 1.0
+
+    def add_subcaption(self, content, duration=1, offset=0):
+        self.subcaptions.append((self.time + offset, self.time + offset + duration, content))
 
 
 class PlaySceneTests(unittest.TestCase):
@@ -239,12 +246,22 @@ class PlaySceneTests(unittest.TestCase):
         ran = []
 
         def fake_build(spec, ctx):
-            return BuiltVisual([], [lambda scene, d, i=i: ran.append((i, d)) for i in range(plan.visuals[0].beat_count)])
+            def beat(scene, d, i):
+                ran.append((i, d))
+                scene.wait(d)
 
+            return BuiltVisual([], [lambda scene, d, i=i: beat(scene, d, i) for i in range(plan.visuals[0].beat_count)])
+
+        scene = FakeScene()
         with mock.patch.object(runner, "build_visual", side_effect=fake_build):
-            runner.play_scene(FakeScene(), plan, PrimitiveContext(fonts=FONTS), voiceover=False)
+            runner.play_scene(scene, plan, PrimitiveContext(fonts=FONTS), voiceover=False)
         self.assertEqual(list(range(9)), [index for index, _ in ran])
         self.assertTrue(all(duration == runner.SILENT_BEAT for _, duration in ran))
+        # Silent renders still caption every sentence, in order, over the time it took.
+        self.assertEqual(" ".join(plan.sentences), " ".join(text.replace("\n", " ") for _, _, text in scene.subcaptions))
+        starts = [start for start, _, _ in scene.subcaptions]
+        self.assertEqual(sorted(starts), starts)
+        self.assertGreaterEqual(starts[0], 0.0)
 
     def test_after_narration_beats_use_fixed_timing(self):
         package = load(ARRAYS)

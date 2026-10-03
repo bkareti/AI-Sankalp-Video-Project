@@ -7,6 +7,7 @@ from typing import Any, List, Optional, Sequence, Tuple
 from manim import PI, UP, FadeOut, VGroup, smooth
 
 from .. import brand
+from ..captions import emit_subcaptions
 from .base import Beat, BuiltVisual, PrimitiveContext
 from .layout import section_label, title_text
 from .planner import ScenePlan, VisualPlan, assign_beats
@@ -101,10 +102,14 @@ def play_scene(scene, plan: ScenePlan, ctx: PrimitiveContext, voiceover: bool, a
     for sentence, assigned in zip(plan.sentences, assign_beats(len(plan.sentences), len(beats))):
         if voiceover:
             with scene.voiceover(text=sentence) as tracker:
+                emit_subcaptions(scene, sentence, tracker.duration)
                 duration = max(MIN_NARRATED_BEAT, min(MAX_NARRATED_BEAT, tracker.duration * NARRATED_BEAT_FACTOR))
                 _run(scene, [beats[i] for i in assigned], duration, ambient, share=True)
         else:
+            start = scene.time
             _run(scene, [beats[i] for i in assigned], SILENT_BEAT, ambient, share=False)
+            elapsed = scene.time - start
+            emit_subcaptions(scene, sentence, elapsed, offset=-elapsed)
     if beats:
         clear_since(scene, state["marker"])
 

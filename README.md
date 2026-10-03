@@ -2,7 +2,7 @@
 
 A reusable local Python app that turns a programming topic, explanation, and code example into a branded animated Manim lesson. Lessons are data, not hand-edited scene files: create a JSON/YAML config or fill in the desktop form, then generate and render.
 
-The video template includes an intro, lesson title, step-by-step explanation cards, optional data-driven section visuals, syntax-highlighted code, a recap, persistent AI Sankalp branding, optional gTTS narration/subcaptions, and an outro.
+The video template includes an intro, lesson title, step-by-step explanation cards, optional data-driven section visuals, syntax-highlighted code, a recap, persistent AI Sankalp branding, optional gTTS or Edge TTS narration, SRT/VTT captions for every render, and an outro.
 
 ## Project structure
 
@@ -19,13 +19,14 @@ examples/python_for_loops/     Rich package for the Python sample
 examples/arrays_in_cpp/        Flagship C++ arrays sample (reduced config + rich package)
 assets/ai_sankalp_logo.svg
 assets/fonts/                  Optional bundled fonts (see its README)
-docs/                          Brand checklist, template and primitive guide
+docs/                          Brand checklist, template and primitive guide, review checklist
 scenes/primitive_smoke.py      One smoke render per primitive fixture (examples/primitives/)
 generated/
   configs/                     Normalized lesson configs
   scenes/                      Small generated Manim entry points
   audio/                       gTTS voiceover cache
-  videos/                      Final MP4 files
+  videos/                      Final MP4 files with .srt/.vtt captions
+  qa/                          QA reports (qa_report.json per lesson)
   history.jsonl                Generation/render event history
 scenes/                        Original hand-authored Manim examples
 tests/                         Fast generator/model tests
@@ -301,6 +302,82 @@ For a prompt-based terminal workflow:
 python app.py interactive
 ```
 
+## Captions
+
+Every render writes captions next to the MP4, with or without narration:
+
+- `generated/videos/<name>.srt`
+- `generated/videos/<name>.vtt`
+
+Each narrated block is split into short cues of at most two 42-character lines,
+timed to the narration audio (or, in a silent preview, to the animation). When
+a render has no subtitle track, the cues are estimated from the narration text
+instead. `app.py history` records which source was used.
+
+```bash
+# Also write <name>_captioned.mp4 with captions drawn into the video (phone-friendly)
+python app.py sample --render --no-voiceover --quality low --burn-captions
+python app.py generate --config examples/arrays_in_cpp/lesson_package.json --render --burn-captions
+
+# Write SRT/VTT from narration text without rendering
+python app.py captions --config examples/arrays_in_cpp/lesson_package.json
+```
+
+`<name>.captions.json`, next to the captions, records whether they were timed by a
+render or estimated. QA reads it. `app.py captions` will not replace
+render-timed captions unless you add `--force`; use `--output-dir` for a
+separate copy.
+
+Burned-in captions sit in the reserved bottom band above the footer, so they
+never cover lesson visuals. Burn-in uses Pillow and ffmpeg's `overlay` filter,
+so ffmpeg does not need libass. It re-encodes the video.
+
+## QA and final-ready
+
+`app.py qa` decides whether a lesson can be published. It writes
+`generated/qa/<slug>/qa_report.json` and prints each check with a plain
+**Why** and **Fix**.
+
+```bash
+python app.py qa --slug arrays_in_cpp
+python app.py qa --package examples/python_for_loops/lesson_package.json --video-dir output
+```
+
+Exit codes: `0` final-ready, `2` needs review, `1` failed.
+
+| Check | Fails or needs review when |
+|---|---|
+| `package_present`, `package_schema` | The package is missing or invalid (field paths are listed). |
+| `reduced_config`, `template_prerequisites`, `scene_compiles` | The generated config or scene is missing, stale, or broken, or the template cannot draw the package. |
+| `required_assets` | A reused or generated asset file is missing. |
+| `final_video` | The MP4 is missing, or its length is more than 35% off the planned duration. |
+| `captions` | SRT/VTT are missing or unreadable (fail); estimated, too fast to read, or longer than the video (needs review). |
+| `history` | The latest render was a silent preview of a narrated lesson (fail), or there is no render record. |
+| `sme_approval` | `review_status.sme_approved` is not true with a reviewer and date. |
+| `manual_checklist` | Pedagogy, pacing, readability, or brand is not marked `pass`. |
+
+A lesson is final-ready only when every check passes, including SME approval.
+See `docs/review-checklist.md` for how an SME reviews and records approval.
+Record approval in the package file QA names in its first row: `--slug`
+prefers `generated/packages/<slug>/` over `examples/<slug>/`, and QA flags it
+when both exist with different `review_status`.
+The tracked example packages are not approved yet, so QA reports them as not
+final-ready.
+
+### Golden regression
+
+`tests/golden/arrays_in_cpp.plan.json` locks the flagship's primitive plan:
+scenes, primitives, beats, and sentences. Unit tests check it on every run. An
+opt-in render check compares the duration and frame hashes of a silent
+low-quality render:
+
+```bash
+AI_SANKALP_GOLDEN_RENDER=1 python -m unittest tests.test_golden_render -v
+# After an intentional visual change, re-baseline:
+python -m ai_sankalp.qa.golden update-plan --slug arrays_in_cpp
+python -m ai_sankalp.qa.golden update-frames --slug arrays_in_cpp
+```
+
 ## History and troubleshooting
 
 Show recent jobs:
@@ -343,7 +420,6 @@ The main extension points are deliberately separate:
 
 - Add a voice provider in `ai_sankalp/speech.py` and the `provider` enum in both schemas.
 - Add a visual template as a runtime scene class registered in `ai_sankalp/template_registry.py` (routing and prerequisite checks), then update the schema enum and tests.
-- Add subtitles from Manim Voiceover's generated subcaptions.
 - Build a web UI over `LessonGenerator` and `ManimRenderer` without changing the lesson format.
 - Add batch generation by loading multiple configs and calling the same generator/renderer APIs.
 

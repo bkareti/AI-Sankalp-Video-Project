@@ -704,6 +704,13 @@
   "output_filename": "python_for_loops.mp4",
   "output_folder_name": "python_for_loops",
   "visual_template": "standard",
+  "review_status": {
+    "sme_approved": false,
+    "sme_reviewer": null,
+    "sme_approved_on": null,
+    "notes": "Awaiting subject-matter expert review. See docs/review-checklist.md.",
+    "checklist": {"pedagogy": "pending", "pacing": "pending", "readability": "pending", "brand": "pending"}
+  },
   "branding": {
     "logo_asset_id": "asset_branding",
     "logo_position": "upper_right_safe_area",

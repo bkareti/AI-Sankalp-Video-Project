@@ -7,11 +7,17 @@ import sys
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
+from .caption_burn import CaptionBurnError, burn_captions as burn_caption_video
+from .captions import (
+    SOURCE_ESTIMATED, SOURCE_RENDER, CaptionFiles, Cue, estimate_cues_from_lesson, estimate_cues_from_package,
+    export_captions, find_render_srt, parse_srt,
+)
 from .generator import GeneratedLesson
 from .history import HistoryLog
 from .models import LessonConfig
+from .package import display_path, load_package
 
 
 class DependencyError(RuntimeError):
@@ -27,6 +33,31 @@ class RenderResult:
     video_path: Path
     command: List[str]
     output: str
+    captions: Optional[CaptionFiles] = None
+    captioned_video_path: Optional[Path] = None
+
+
+def narration_cues(lesson: LessonConfig, package_path: Optional[Path]) -> List[Cue]:
+    """Estimated cues from what the template narrates (package scenes or standard script)."""
+    if package_path is not None and lesson.visual_template != "standard":
+        return estimate_cues_from_package(load_package(package_path))
+    return estimate_cues_from_lesson(lesson)
+
+
+def collect_captions(media_dir: Path, lesson: LessonConfig, package_path: Optional[Path], output_dir: Path) -> CaptionFiles:
+    """Copy the render's SRT (or estimate one) next to the MP4 as SRT and VTT."""
+    cues: List[Cue] = []
+    source = SOURCE_ESTIMATED
+    rendered = find_render_srt(media_dir, lesson.slug)
+    if rendered is not None:
+        try:
+            cues = parse_srt(rendered.read_text(encoding="utf-8"))
+            source = SOURCE_RENDER
+        except ValueError:
+            cues = []
+    if not cues:
+        cues, source = narration_cues(lesson, package_path), SOURCE_ESTIMATED
+    return export_captions(cues, output_dir, lesson.slug, source)
 
 
 def _python_with_manim(project_root: Path) -> Path:
@@ -82,6 +113,7 @@ class ManimRenderer:
         lesson: LessonConfig,
         output_dir: Path | None = None,
         quality: str = "low",
+        burn_captions: bool = False,
     ) -> RenderResult:
         if quality not in self.QUALITY:
             raise ValueError(f"quality must be one of: {', '.join(self.QUALITY)}")
@@ -125,8 +157,27 @@ class ManimRenderer:
         source = max(candidates, key=lambda item: item.stat().st_mtime)
         final_path = output_dir / output_filename
         shutil.copy2(source, final_path)
+        captions = collect_captions(media_dir, lesson, generated.package_path, output_dir)
+        # Record the render before the optional burn-in: the MP4 and captions are
+        # already in place, so history must describe them even if burning fails.
         self.history.add(
             "render_succeeded", topic=lesson.topic, video=str(final_path), quality=quality,
             voiceover=lesson.voiceover.enabled,
+            captions=captions.to_dict(lambda path: display_path(path, self.root)),
         )
-        return RenderResult(video_path=final_path, command=command, output=combined)
+        captioned_path = None
+        if burn_captions:
+            captioned_path = output_dir / f"{lesson.slug}_captioned.mp4"
+            try:
+                burn_caption_video(final_path, parse_srt(captions.srt.read_text(encoding="utf-8")), captioned_path, quality)
+            except CaptionBurnError as exc:
+                self.history.add("caption_burn_failed", topic=lesson.topic, video=str(final_path), error=str(exc)[-3000:])
+                raise RenderError(str(exc)) from exc
+            self.history.add(
+                "captions_burned", topic=lesson.topic, video=str(final_path),
+                captioned_video=display_path(captioned_path, self.root),
+            )
+        return RenderResult(
+            video_path=final_path, command=command, output=combined,
+            captions=captions, captioned_video_path=captioned_path,
+        )
