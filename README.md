@@ -76,7 +76,7 @@ create video to explain Array in C++
 
 ## AI architecture and API keys
 
-AI is optional. Authoring runs through the agent skill above; a small Python adapter (`ai_sankalp/llm.py`) is the integration point for future repair and batch features and is disabled by default. To enable it, create an untracked `.env` file and set your own `AI_SANKALP_LLM_PROVIDER`, `AI_SANKALP_LLM_MODEL` and `ANTHROPIC_API_KEY`. Which AI runs where, costs, secrets, and offline behavior are in [docs/ai-architecture.md](docs/ai-architecture.md).
+AI is optional. Authoring runs through the agent skill above; a small Python adapter (`ai_sankalp/llm.py`) is the integration point for future repair and batch features and is disabled by default. To enable it, create an untracked `.env` file in the repo root (callers load it with `load_settings(dotenv_path=DEFAULT_DOTENV_PATH)`) and set your own `AI_SANKALP_LLM_PROVIDER`, `AI_SANKALP_LLM_MODEL` and `ANTHROPIC_API_KEY`. Which AI runs where, costs, secrets, and offline behavior are in [docs/ai-architecture.md](docs/ai-architecture.md).
 
 ## Run the sample
 

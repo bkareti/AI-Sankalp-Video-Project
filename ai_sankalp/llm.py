@@ -4,12 +4,14 @@ Nothing in the app calls this yet; it is the stable integration target for
 repair (#13), planner (#15), UI (#18) and batch (#19). The default provider is
 ``none``, so every existing command works without a key or a network.
 
-Standard library only. The adapter does not retry: retry and budget policy
-belong to the callers so they live in one place.
+Standard library only. The adapter does not retry and does not stream: retry
+and budget policy belong to the callers so they live in one place.
 """
 from __future__ import annotations
 
+import http.client
 import json
+import math
 import os
 import urllib.error
 import urllib.request
@@ -24,9 +26,12 @@ ENV_ANTHROPIC_KEY = "ANTHROPIC_API_KEY"
 ENV_TIMEOUT = "AI_SANKALP_LLM_TIMEOUT"
 PROVIDERS = ("none", "anthropic")
 DEFAULT_TIMEOUT_S = 120.0
+DEFAULT_DOTENV_PATH = Path(__file__).resolve().parents[1] / ".env"
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01"
 DOC_HINT = "see docs/ai-architecture.md"
+RETRYABLE_STATUSES = frozenset({408, 429})
+ERROR_DETAIL_CHARS = 200
 
 # transport(url, headers, body, timeout_s) -> (http_status, response_body_bytes)
 Transport = Callable[[str, Mapping[str, str], bytes, float], tuple[int, bytes]]
@@ -37,11 +42,11 @@ class LLMError(RuntimeError):
 
 
 class LLMConfigError(LLMError):
-    """The provider, model or key is not configured."""
+    """The provider, model or key is missing or rejected. Retrying will not help."""
 
 
 class LLMUnavailableError(LLMError):
-    """The provider could not be reached or rejected the call (timeout, 429, 5xx)."""
+    """The provider could not be reached or is overloaded (network, 408, 429, 5xx)."""
 
 
 @dataclass(frozen=True)
@@ -62,11 +67,14 @@ class LLMRequest:
 
 @dataclass(frozen=True)
 class LLMResponse:
+    """`stop_reason == "max_tokens"` means the output was cut off."""
+
     text: str
     provider: str
     model: str
     input_tokens: int
     output_tokens: int
+    stop_reason: str | None = None
 
 
 class LLMClient(Protocol):
@@ -80,31 +88,42 @@ def parse_dotenv(text: str) -> dict[str, str]:
         line = raw.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue
-        if line.startswith("export "):
-            line = line[len("export "):]
+        line = line.removeprefix("export ")
         key, _, value = line.partition("=")
         value = value.strip()
         if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
             value = value[1:-1]
+        elif " #" in value:
+            value = value.split(" #", 1)[0].rstrip()
         values[key.strip()] = value
     return values
 
 
+def _parse_timeout(raw: str | None) -> float:
+    try:
+        timeout = float(raw) if raw else DEFAULT_TIMEOUT_S
+    except ValueError:
+        timeout = math.nan
+    if not math.isfinite(timeout) or timeout <= 0:
+        raise LLMConfigError(f"{ENV_TIMEOUT} must be a positive number of seconds; {DOC_HINT}.")
+    return timeout
+
+
 def load_settings(env: Mapping[str, str] | None = None, dotenv_path: Path | None = None) -> LLMSettings:
-    """Build settings from `.env` (optional) overlaid by the process environment."""
+    """Build settings from `.env` (optional) overlaid by the process environment.
+
+    `.env` is read only when `dotenv_path` is given, so tests stay deterministic.
+    Real callers pass `DEFAULT_DOTENV_PATH` (the repo-root `.env`).
+    """
     merged: dict[str, str] = {}
     if dotenv_path is not None and Path(dotenv_path).is_file():
         merged.update(parse_dotenv(Path(dotenv_path).read_text(encoding="utf-8")))
     merged.update(os.environ if env is None else env)
-    try:
-        timeout = float(merged.get(ENV_TIMEOUT) or DEFAULT_TIMEOUT_S)
-    except ValueError as exc:
-        raise LLMConfigError(f"{ENV_TIMEOUT} must be a number of seconds; {DOC_HINT}.") from exc
     return LLMSettings(
         provider=(merged.get(ENV_PROVIDER) or "none").strip().lower(),
         model=(merged.get(ENV_MODEL) or "").strip() or None,
         api_key=(merged.get(ENV_ANTHROPIC_KEY) or "").strip() or None,
-        timeout_s=timeout,
+        timeout_s=_parse_timeout(merged.get(ENV_TIMEOUT)),
     )
 
 
@@ -121,7 +140,7 @@ class FakeLLMClient:
         self.requests.append(request)
         if not self._responses:
             raise LLMError("FakeLLMClient has no queued responses left.")
-        return LLMResponse(self._responses.pop(0), self.provider, self.model, 0, 0)
+        return LLMResponse(self._responses.pop(0), self.provider, self.model, 0, 0, "end_turn")
 
 
 def _urllib_transport(url: str, headers: Mapping[str, str], body: bytes, timeout_s: float) -> tuple[int, bytes]:
@@ -133,10 +152,19 @@ def _urllib_transport(url: str, headers: Mapping[str, str], body: bytes, timeout
         return exc.code, exc.read()
 
 
+def _error_detail(raw: bytes) -> str:
+    """The API's own error type/message, trimmed. Never raises."""
+    try:
+        error = json.loads(raw)["error"]
+        return f" ({error['type']}: {error['message']})"[:ERROR_DETAIL_CHARS]
+    except (ValueError, KeyError, TypeError):
+        return ""
+
+
 class AnthropicClient:
     def __init__(self, settings: LLMSettings, transport: Transport | None = None) -> None:
         if not settings.api_key or not settings.model:
-            raise LLMConfigError(f"AnthropicClient needs a key and a model; {DOC_HINT}.")
+            raise LLMConfigError(f"AnthropicClient needs {ENV_ANTHROPIC_KEY} and {ENV_MODEL}; {DOC_HINT}.")
         self._settings = settings
         self._transport = transport or _urllib_transport
 
@@ -155,18 +183,31 @@ class AnthropicClient:
         }
         try:
             status, raw = self._transport(ANTHROPIC_URL, headers, body, settings.timeout_s)
-        except (TimeoutError, urllib.error.URLError, OSError) as exc:
+        except (TimeoutError, OSError, http.client.HTTPException) as exc:
             raise LLMUnavailableError(f"Anthropic request failed: {type(exc).__name__}.") from None
         if status >= 400:
-            raise LLMUnavailableError(f"Anthropic returned HTTP {status}.")
+            self._raise_for_status(status, raw)
         try:
             data = json.loads(raw)
             text = "".join(b.get("text", "") for b in data["content"] if b.get("type") == "text")
             usage = data.get("usage", {})
             return LLMResponse(text, "anthropic", settings.model, int(usage.get("input_tokens", 0)),
-                               int(usage.get("output_tokens", 0)))
+                               int(usage.get("output_tokens", 0)), data.get("stop_reason"))
         except (ValueError, KeyError, TypeError, AttributeError) as exc:
             raise LLMError(f"Anthropic returned an unreadable response ({type(exc).__name__}).") from None
+
+    def _raise_for_status(self, status: int, raw: bytes) -> None:
+        detail = _error_detail(raw)
+        if self._settings.api_key in detail:
+            detail = ""
+        if status in RETRYABLE_STATUSES or status >= 500:
+            raise LLMUnavailableError(f"Anthropic returned HTTP {status}{detail}.")
+        if status in (400, 401, 403, 404):
+            raise LLMConfigError(
+                f"Anthropic rejected the request with HTTP {status}{detail}. Check {ENV_ANTHROPIC_KEY} "
+                f"and {ENV_MODEL}; {DOC_HINT}."
+            )
+        raise LLMError(f"Anthropic returned HTTP {status}{detail}.")
 
 
 def build_client(settings: LLMSettings, transport: Transport | None = None) -> LLMClient:

@@ -47,7 +47,8 @@ This issue builds and documents the adapter. Nothing calls it yet.
 
 Minimum quality bar. A model is acceptable only if it:
 
-1. Reliably produces a 20-30k-token package that passes `validate_package`.
+1. Reliably produces a full package (about 26-34k tokens, see the cost section)
+   that passes `validate_package`.
    More than one schema failure in three attempts on the two tracked fixtures
    (`examples/arrays_in_cpp`, `examples/python_for_loops`) is below the bar.
 2. Writes correct code and expected output (checked by running the code where
@@ -58,22 +59,34 @@ Minimum quality bar. A model is acceptable only if it:
 
 LLM prices are from <https://platform.claude.com/docs/en/about-claude/pricing>,
 checked 2026-10-03 (verified). Token counts are **estimates**, not measured
-runs: `examples/arrays_in_cpp/lesson_package.json` is 785 lines (about 11k
-tokens) and its `.md` about 10k; Claude 4.7+ tokenizers produce roughly 30% more
-tokens for the same text. Assumption: one draft plus two revisions is about
-90k input and 45k output tokens per video.
+runs. Basis: in `examples/arrays_in_cpp`, `lesson_package.json` is 41,799 bytes
+and `lesson_package.md` is 56,008 bytes, 97,807 bytes together. At about 3.8
+bytes per token (an assumption) that is about 26k tokens, or about 34k with the
+roughly 30% extra tokens that Claude 4.7+ tokenizers produce for the same text.
+
+Per-video assumption:
+
+| Pass | Input tokens | Output tokens |
+|---|---|---|
+| Draft (skill, schema and brief in, full package out) | about 20k | about 34k |
+| Two revisions, each sends the package back and returns targeted patches | about 54k each | about 5k each |
+| Total | about 128k | about 44k |
+
+The 5k-per-revision figure assumes patches, not full rewrites. A full rewrite per
+pass would roughly double output cost. This is the first number to measure.
 
 | Model (price per million input / output) | Per 5-minute video | 50 videos, standard | 50 videos, Batch API (-50%) |
 |---|---|---|---|
-| Sonnet 5.5 ($2 / $10) | about $0.63 | about $32 | about $16 |
-| Opus 5.5 ($4 / $20) | about $1.26 | about $63 | about $32 |
-| Haiku 4.5 ($1 / $5), below the bar for drafting | about $0.32 | about $16 | about $8 |
+| Sonnet 5.5 ($2 / $10) | about $0.70 | about $35 | about $17 |
+| Opus 5.5 ($4 / $20) | about $1.39 | about $70 | about $35 |
+| Haiku 4.5 ($1 / $5), below the bar for drafting | about $0.35 | about $17 | about $9 |
 
 - **Prompt caching:** cache reads cost 0.1x the input price (0.05x on Opus 5.5),
   which lowers input cost when the skill and schema prefix is reused. Not
   included in the table above.
-- **Repair (#13):** each attempt is about 20k input and 5k output tokens, about
-  $0.09 on Sonnet 5.5. Three attempts cost at most about $0.27.
+- **Repair (#13):** assumes a repair prompt that carries only the failing section and
+  its error, not the whole package: about 20k input and 5k output tokens per
+  attempt, about $0.09 on Sonnet 5.5. Three attempts cost at most about $0.27.
 - **Skill path (Codex or Claude Code):** billed to the operator's plan, not
   metered per token here. Plan prices were not verified.
 
@@ -101,14 +114,17 @@ it) before a batch run.
 - Variables: `AI_SANKALP_LLM_PROVIDER`,
   `AI_SANKALP_LLM_MODEL`, `AI_SANKALP_LLM_TIMEOUT`, `ANTHROPIC_API_KEY`.
 - Load order: an optional untracked `.env`, overridden by the process
-  environment. `load_settings()` does this.
+  environment. `load_settings(dotenv_path=DEFAULT_DOTENV_PATH)` does this.
+  `DEFAULT_DOTENV_PATH` is the repo-root `.env`. `.env` is read only when a
+  path is passed, so tests stay deterministic and callers do not depend on the
+  working directory.
 - `.env` and `.env.*` are gitignored (`.env.example` is exempt so a template can
   be added later; none is tracked yet).
 - Each developer uses their own key. There is no shared key in the repo, CI or
   hooks. Batch runs (#19) use the maintainer's account.
 - The key is never logged, never in a `repr`, and never in an error message.
-- Existing guard hooks in `.claude/hooks` and `.codex/hooks` also block staging
-  `.env` files.
+- The guard hook `.claude/hooks/guard_bash.py` also blocks staging `.env`
+  files in Claude Code sessions.
 
 ## Privacy
 
@@ -127,8 +143,14 @@ policy (#13, #19) so it lives in one place.
 - Provider `none` or a missing key: everything except AI calls works.
   `build_client()` raises `LLMConfigError` naming the missing variable and
   stating that generate, render and qa still work.
-- LLM outage, timeout, 429 or 5xx: callers get `LLMUnavailableError`. #13 and
-  #19 record the failure and skip or fail that one job; they do not hang.
+- LLM outage, network error, timeout, 408, 429 or 5xx: callers get
+  `LLMUnavailableError`. #13 and #19 record the failure and skip or fail that
+  one job; they do not hang.
+- A rejected key or model (HTTP 400, 401, 403, 404): callers get
+  `LLMConfigError` naming `ANTHROPIC_API_KEY` and `AI_SANKALP_LLM_MODEL` with the
+  API's error type. Batch callers must stop the whole run, not skip one job.
+- A response cut off at `max_tokens`: `LLMResponse.stop_reason` is
+  `"max_tokens"`. Callers must check it before parsing the text.
   Fallbacks: hand-edit the package JSON, or start from the tracked examples.
 - TTS outage: cached audio is reused. Otherwise render with `--no-voiceover`,
   generate captions from the narration, or switch between gTTS and Edge TTS.
@@ -150,14 +172,16 @@ policy (#13, #19) so it lives in one place.
 `ai_sankalp/llm.py` exposes:
 
 - `LLMRequest(system, prompt, max_output_tokens, purpose)` and
-  `LLMResponse(text, provider, model, input_tokens, output_tokens)`.
+  `LLMResponse(text, provider, model, input_tokens, output_tokens, stop_reason)`.
 - `LLMClient` protocol with `complete(request) -> LLMResponse`.
 - `load_settings(env=None, dotenv_path=None)` and `build_client(settings)`.
 - `FakeLLMClient(responses)` for offline tests; it records requests.
-- Errors: `LLMConfigError` (not configured) and `LLMUnavailableError` (cannot
-  reach or rejected), both subclasses of `LLMError`.
+- Errors, all subclasses of `LLMError`: `LLMConfigError` (not configured, or
+  the key or model was rejected; retrying will not help) and
+  `LLMUnavailableError` (network error, 408, 429, 5xx; retry later). Any other
+  failure is a plain `LLMError`.
 
-Callers get a client with `build_client(load_settings(dotenv_path=...))` and in
+Callers get a client with `build_client(load_settings(dotenv_path=DEFAULT_DOTENV_PATH))` and in
 tests use `FakeLLMClient`. The real HTTP path (Anthropic Messages API) is
 unit-tested through an injected transport; it has not been exercised against the
 live API in CI.
@@ -167,3 +191,8 @@ live API in CI.
 OpenAI client, retry/backoff/budget caps (#13, #19), Python Planner (#15), an
 `app.py check` line for LLM status, cost logging to `history.jsonl` (#19),
 prompt caching and Batch API support in the adapter, paid TTS providers.
+
+Known limitations of the adapter: no streaming, and one socket timeout
+(default 120 s, `AI_SANKALP_LLM_TIMEOUT`). Anthropic recommends streaming or the
+Batch API for very long outputs, so #15 and #19 should raise the timeout or add
+streaming before generating full packages.
