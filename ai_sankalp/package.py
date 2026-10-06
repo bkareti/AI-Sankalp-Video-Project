@@ -11,6 +11,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from .config_io import read_data
 from .models import LessonConfig, LessonValidationError
 from .schema_validation import SchemaIssue, load_schema, validate
 
@@ -57,12 +58,15 @@ def load_package(path: Path) -> Dict[str, Any]:
     path = Path(path)
     if not path.exists():
         raise LessonValidationError(f"lesson package not found: {display_path(path)}")
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
-        raise LessonValidationError(f"could not read lesson package {display_path(path)}: {exc}") from exc
+    if path.suffix.lower() in {".yaml", ".yml"}:
+        data = read_data(path)  # reports its own read errors; YAML packages worked before the compiler
+    else:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            raise LessonValidationError(f"could not read lesson package {display_path(path)}: {exc}") from exc
     if not isinstance(data, dict):
-        raise LessonValidationError(f"lesson package {display_path(path)} must be a JSON object")
+        raise LessonValidationError(f"lesson package {display_path(path)} must be an object")
     return data
 
 

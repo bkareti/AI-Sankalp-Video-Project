@@ -309,10 +309,13 @@ The metadata records the source package hash, the template and which field
 chose it, every scene's primitives (explicit `visuals` or the default for the
 scene type), the narration segments captions are built from, an estimated
 caption length, hashes of the config and scene, and any warnings. It holds no
-timestamps or machine paths, so compiling an unchanged package gives
-byte-identical config, scene, and metadata; `generated/history.jsonl` is the
-timestamped log. The `compile_key` hash changes whenever the package, the scene
-template, or the compile options (such as `--no-voiceover`) change.
+timestamps, so compiling an unchanged package gives byte-identical config,
+scene, and metadata; `generated/history.jsonl` is the timestamped log. Paths in
+the metadata are relative to the project, so the outputs are the same on any
+machine for a package inside the project. A package outside the project is
+recorded, and pinned in the scene, by its absolute path. The `compile_key` hash
+changes whenever the package, the scene template, the template routing, or the
+compile options (such as `--no-voiceover`) change. Packages may be JSON or YAML.
 
 Reduced configs (`--config examples/python_for_loops.json`, `sample`, the
 form, `interactive`) generate exactly as before and write no metadata.

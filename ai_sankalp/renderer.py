@@ -111,7 +111,7 @@ class ManimRenderer:
         """Refuse to start Manim on a scene that is missing or does not compile."""
         name = display_path(scene_path, self.root)
         try:
-            source = Path(scene_path).read_text(encoding="utf-8")
+            source = Path(scene_path).read_bytes()
         except OSError as exc:
             raise RenderError(f"scene file cannot be read: {name} ({exc}). Run generate first.") from exc
         check_scene_syntax(source, name)

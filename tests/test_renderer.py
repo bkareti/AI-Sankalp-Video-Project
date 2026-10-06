@@ -92,12 +92,17 @@ class RendererSceneCheckTests(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         root = Path(directory.name)
         scene = root / "scene.py"
-        if source is not None:
+        if isinstance(source, bytes):
+            scene.write_bytes(source)
+        elif source is not None:
             scene.write_text(source, encoding="utf-8")
         generated = GeneratedLesson(scene, scene, lesson.scene_class)
         with mock.patch.object(renderer, "_python_with_manim", return_value=Path("python")), \
                 mock.patch.object(renderer.shutil, "which", return_value="/usr/bin/ffmpeg"), \
-                mock.patch.object(renderer.subprocess, "run") as run:
+                mock.patch.object(
+                    renderer.subprocess, "run",
+                    return_value=subprocess.CompletedProcess([], 1, stdout="", stderr="stubbed manim"),
+                ) as run:
             try:
                 ManimRenderer(root).render(generated, lesson, root / "out", "low")
             finally:
@@ -109,6 +114,16 @@ class RendererSceneCheckTests(unittest.TestCase):
             self.render_scene("class A:\n    def broken(:\n        pass\n")
         self.run_mock.assert_not_called()
         self.assertFalse(self.history.exists())
+
+    def test_scene_that_is_not_utf8_is_a_syntax_error_not_a_decode_crash(self):
+        with self.assertRaisesRegex(SceneSyntaxError, "scene.py has a syntax error"):
+            self.render_scene(b"x = '\xe9'\n")
+        self.run_mock.assert_not_called()
+
+    def test_scene_with_a_byte_order_mark_passes_the_gate_and_reaches_manim(self):
+        with self.assertRaisesRegex(RenderError, "stubbed manim"):
+            self.render_scene(b"\xef\xbb\xbfx = 1\n")
+        self.run_mock.assert_called_once()
 
     def test_missing_scene_is_a_render_error_not_a_manim_run(self):
         with self.assertRaisesRegex(RenderError, "scene file cannot be read"):

@@ -1,3 +1,4 @@
+import dataclasses
 import hashlib
 import json
 import py_compile
@@ -6,12 +7,19 @@ import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
+
+try:
+    import yaml
+except ImportError:  # PyYAML is optional; JSON packages still work
+    yaml = None
 
 from ai_sankalp.compiler import COMPILER_VERSION, PackageCompiler, canonical_sha256
 from ai_sankalp.config_io import load_config
 from ai_sankalp.generator import LessonGenerator, SceneSyntaxError
 from ai_sankalp.models import LessonConfig
-from ai_sankalp.package import PackageValidationError, package_to_lesson, select_visual_template
+from ai_sankalp.package import PackageValidationError, load_package, package_to_lesson, select_visual_template
+from ai_sankalp.template_registry import TEMPLATES
 
 ROOT = Path(__file__).resolve().parents[1]
 ARRAYS = "arrays_in_cpp"
@@ -221,7 +229,7 @@ class DeterminismTests(unittest.TestCase):
         self.assertEqual(before, after)
 
     def test_output_hashes_describe_the_files_written(self):
-        root, written = self.compile_in_new_root(ARRAYS)
+        _root, written = self.compile_in_new_root(ARRAYS)
         metadata = json.loads(written["arrays_in_cpp.compile.json"])
         config_bytes, scene_bytes = written["arrays_in_cpp.json"], written["arrays_in_cpp.py"]
         self.assertEqual(hashlib.sha256(config_bytes).hexdigest(), metadata["outputs"]["config"]["sha256"])
@@ -241,6 +249,83 @@ class DeterminismTests(unittest.TestCase):
         self.assertFalse(compiled.lesson.voiceover.enabled)
         self.assertFalse(load_config(compiled.generated.config_path).voiceover.enabled)
         self.assertNotEqual(json.loads(loud["python_for_loops.compile.json"])["compile_key"], compiled.metadata["compile_key"])
+
+
+class CompileKeyTests(unittest.TestCase):
+    """compile_key names everything that changes the outputs."""
+
+    def key_in_new_root(self, slug=LOOPS, template_bytes=None):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = make_root(directory.name, slug)
+        if template_bytes is not None:
+            (root / "templates" / "generated_scene.py.tmpl").write_bytes(template_bytes(root))
+        compiled = PackageCompiler(root).compile(package_path(root, slug))
+        return compiled.metadata, compiled.generated.scene_path.read_bytes()
+
+    def test_template_routing_is_part_of_the_key(self):
+        before, _scene = self.key_in_new_root()
+        rerouted = dataclasses.replace(TEMPLATES["standard"], scene_base="OtherLessonBase")
+        with mock.patch.dict(TEMPLATES, {"standard": rerouted}):
+            after, scene = self.key_in_new_root()
+        self.assertIn(b"OtherLessonBase", scene)
+        self.assertNotEqual(before["compile_key"], after["compile_key"])
+
+    def test_crlf_checkout_of_the_template_changes_nothing(self):
+        lf_metadata, lf_scene = self.key_in_new_root()
+
+        def crlf(root):
+            text = (ROOT / "templates" / "generated_scene.py.tmpl").read_text(encoding="utf-8")
+            return text.replace("\n", "\r\n").encode("utf-8")
+
+        crlf_metadata, crlf_scene = self.key_in_new_root(template_bytes=crlf)
+        self.assertEqual(lf_scene, crlf_scene)
+        self.assertEqual(lf_metadata["scene_template_sha256"], crlf_metadata["scene_template_sha256"])
+        self.assertEqual(lf_metadata["compile_key"], crlf_metadata["compile_key"])
+
+
+class OutOfRootPackageTests(unittest.TestCase):
+    def test_package_outside_the_project_is_recorded_by_absolute_path(self):
+        """Known limitation: a package outside the root cannot be repo-relative."""
+        with tempfile.TemporaryDirectory() as directory, tempfile.TemporaryDirectory() as elsewhere:
+            root = make_root(directory)
+            outside = make_root(elsewhere, LOOPS)
+            compiled = PackageCompiler(root).compile(package_path(outside, LOOPS))
+            absolute = str(package_path(outside, LOOPS).resolve())
+            self.assertEqual(absolute, compiled.metadata["source"]["path"])
+            self.assertIn(absolute, compiled.generated.scene_path.read_text(encoding="utf-8"))
+            py_compile.compile(str(compiled.generated.scene_path), cfile=str(root / "scene.pyc"), doraise=True)
+
+
+@unittest.skipIf(yaml is None, "PyYAML is not installed")
+class YamlPackageTests(unittest.TestCase):
+    """A YAML package generated before the compiler existed, so it must still."""
+
+    def setUp(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.root = make_root(directory.name, LOOPS)
+        data = json.loads(package_path(self.root, LOOPS).read_text(encoding="utf-8"))
+        self.yaml_path = self.root / "examples" / LOOPS / "lesson_package.yaml"
+        self.yaml_path.write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True), encoding="utf-8")
+        self.package = data
+
+    def test_load_package_reads_yaml(self):
+        self.assertEqual(self.package, load_package(self.yaml_path))
+
+    def test_yaml_package_compiles_to_the_same_outputs_as_json(self):
+        from_json = PackageCompiler(self.root).compile(package_path(self.root, LOOPS))
+        json_config = from_json.generated.config_path.read_bytes()
+        from_yaml = PackageCompiler(self.root).compile(self.yaml_path)
+        self.assertEqual(json_config, from_yaml.generated.config_path.read_bytes())
+        self.assertEqual("standard", from_yaml.metadata["template"]["name"])
+        self.assertEqual(self.package["slug"], from_yaml.metadata["slug"])
+        self.assertEqual(from_json.metadata["source"]["sha256"], from_yaml.metadata["source"]["sha256"])
+
+    def test_yaml_that_is_not_an_object_is_rejected(self):
+        self.yaml_path.write_text("- just\n- a list\n", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "must be an object"):
+            load_package(self.yaml_path)
 
 
 class CompileFailureTests(unittest.TestCase):

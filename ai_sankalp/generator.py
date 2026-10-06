@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 from .config_io import save_config
 from .history import HistoryLog
@@ -31,14 +31,17 @@ def compile_metadata_path(scene_path: Path) -> Path:
     return Path(scene_path).with_suffix(COMPILE_METADATA_SUFFIX)
 
 
-def check_scene_syntax(source: str, name: str) -> None:
+def check_scene_syntax(source: Union[str, bytes], name: str) -> None:
     """Fail with a readable message when `source` does not compile.
 
     This is what `py_compile` does, in memory, so checking never writes a
-    `.pyc` file or leaves a half-written scene behind.
+    `.pyc` file or leaves a half-written scene behind. Like `py_compile`, it
+    compiles bytes, so a UTF-8 byte-order mark is accepted and a file that is
+    not valid UTF-8 is reported as a syntax error rather than a decode crash.
     """
+    data = source.encode("utf-8") if isinstance(source, str) else source
     try:
-        compile(source, name, "exec")
+        compile(data, name, "exec")
     except (SyntaxError, ValueError) as exc:
         line = getattr(exc, "lineno", None)
         where = f" at line {line}" if line else ""

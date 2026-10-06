@@ -50,6 +50,15 @@ def file_sha256(path: Path) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def template_sha256(path: Path) -> str:
+    """Hash the scene template as the generator reads it (text, newlines normalized).
+
+    The scene is built from that text, so a CRLF checkout of the same template
+    must give the same hash.
+    """
+    return hashlib.sha256(Path(path).read_text(encoding="utf-8").encode("utf-8")).hexdigest()
+
+
 def _futuristic_plan(package: Dict[str, Any]) -> List[Dict[str, Any]]:
     """What each scene draws: every primitive, and whether the scene chose it or got the default."""
     scenes = [scene for scene in package["scenes"] if isinstance(scene, dict)]
@@ -150,8 +159,14 @@ class PackageCompiler:
         selected_by = select_visual_template(package)[1]
         spec = TEMPLATES[template]
         package_sha = canonical_sha256(package)
-        template_sha = file_sha256(self.generator.template_path)
+        template_sha = template_sha256(self.generator.template_path)
         options = {"voiceover_enabled": lesson.voiceover.enabled}
+        template_info = {
+            "name": spec.name,
+            "selected_by": selected_by,
+            "scene_module": spec.scene_module,
+            "scene_base": spec.scene_base,
+        }
         if template == STANDARD:
             plan: List[Dict[str, Any]] = _standard_plan(lesson)
             cues = estimate_cues_from_lesson(lesson)
@@ -165,17 +180,13 @@ class PackageCompiler:
                 "package_sha256": package_sha,
                 "source_path": source,
                 "scene_template_sha256": template_sha,
+                "template": template_info,
                 "options": options,
             }),
             "slug": lesson.slug,
             "source": {"kind": "lesson_package", "path": source, "sha256": package_sha},
             "options": options,
-            "template": {
-                "name": spec.name,
-                "selected_by": selected_by,
-                "scene_module": spec.scene_module,
-                "scene_base": spec.scene_base,
-            },
+            "template": template_info,
             "scene_template_sha256": template_sha,
             "outputs": {
                 "config": {

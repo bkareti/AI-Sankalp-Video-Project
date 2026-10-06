@@ -163,6 +163,23 @@ class SceneSyntaxGateTests(unittest.TestCase):
         with self.assertRaises(SceneSyntaxError):
             check_scene_syntax("x = 1\0\n", "a.py")
 
+    def test_byte_order_mark_is_accepted_like_py_compile(self):
+        check_scene_syntax("\ufeffx = 1\n", "a.py")
+        check_scene_syntax("\ufeffx = 1\n".encode("utf-8"), "a.py")
+
+    def test_bytes_that_are_not_utf8_are_a_syntax_error_not_a_decode_crash(self):
+        with self.assertRaisesRegex(SceneSyntaxError, "a.py has a syntax error"):
+            check_scene_syntax(b"x = '\xe9'\n", "a.py")
+
+    def test_template_saved_with_a_byte_order_mark_still_generates(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = make_root(directory)
+            copy_package(root)
+            template = root / "templates" / "generated_scene.py.tmpl"
+            template.write_bytes(b"\xef\xbb\xbf" + template.read_bytes())
+            result = LessonGenerator(root).generate(lesson())
+            py_compile.compile(str(result.scene_path), cfile=str(root / "scene.pyc"), doraise=True)
+
     def test_scene_syntax_error_is_a_lesson_validation_error(self):
         self.assertTrue(issubclass(SceneSyntaxError, LessonValidationError))
 
