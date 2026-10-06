@@ -105,9 +105,14 @@ class SettingsTests(unittest.TestCase):
         parsed = parse_dotenv('A=abc # my key\nB="x # y"\nC=a#b\n')
         self.assertEqual(parsed, {"A": "abc", "B": "x # y", "C": "a#b"})
 
+    def test_parse_dotenv_handles_quoted_values_with_trailing_comments_and_empty_comment_values(self):
+        parsed = parse_dotenv('A="k-1" # personal key\nB= # fill me in\nC=v\t# tab comment\nD=\'q\'\n')
+        self.assertEqual(parsed, {"A": "k-1", "B": "", "C": "v", "D": "q"})
+
     def test_default_dotenv_path_is_repo_root_and_not_read_implicitly(self):
         self.assertEqual(DEFAULT_DOTENV_PATH, ROOT / ".env")
-        with mock.patch.object(Path, "read_text", side_effect=AssertionError(".env read")):
+        read_text = mock.patch.object(Path, "read_text", side_effect=AssertionError(".env read"))
+        with mock.patch.object(Path, "is_file", return_value=True), read_text:
             self.assertEqual(load_settings(env={}).provider, "none")
 
     def test_settings_repr_and_errors_never_contain_key(self):
@@ -157,35 +162,60 @@ class AnthropicClientTests(unittest.TestCase):
                 client.complete(REQUEST)
             self.assertIn(str(status), str(ctx.exception))
 
+    def error_body(self, error_type, message="m"):
+        return json.dumps({"error": {"type": error_type, "message": message}}).encode()
+
     def test_rejected_credentials_or_model_raise_config_error_naming_variables(self):
-        body = json.dumps({"error": {"type": "not_found_error", "message": "model: m-1"}}).encode()
-        for status in (400, 401, 403, 404):
-            client = AnthropicClient(settings(), transport=lambda *a, _s=status: (_s, body))
+        cases = ((401, "authentication_error"), (403, "permission_error"), (404, "not_found_error"))
+        for status, error_type in cases:
+            client = AnthropicClient(settings(), transport=lambda *a, _s=status, _t=error_type: (_s, self.error_body(_t)))
             with self.assertRaises(LLMConfigError) as ctx:
                 client.complete(REQUEST)
             message = str(ctx.exception)
             self.assertIn(str(status), message)
             self.assertIn("ANTHROPIC_API_KEY", message)
             self.assertIn("AI_SANKALP_LLM_MODEL", message)
-            self.assertIn("not_found_error", message)
+            self.assertIn(error_type, message)
             self.assertNotIsInstance(ctx.exception, LLMUnavailableError)
 
-    def test_408_and_529_are_unavailable_and_other_4xx_is_plain_error(self):
+    def test_status_code_is_the_fallback_when_the_body_has_no_error_type(self):
+        for status in (401, 403, 404):
+            client = AnthropicClient(settings(), transport=lambda *a, _s=status: (_s, b"not json"))
+            with self.assertRaises(LLMConfigError):
+                client.complete(REQUEST)
+
+    def test_invalid_request_is_a_plain_error_for_that_job_only(self):
+        body = self.error_body("invalid_request_error", "prompt is too long")
+        for status in (400, 413):
+            client = AnthropicClient(settings(), transport=lambda *a, _s=status: (_s, body))
+            with self.assertRaises(LLMError) as ctx:
+                client.complete(REQUEST)
+            self.assertNotIsInstance(ctx.exception, (LLMConfigError, LLMUnavailableError))
+        self.assertIn("prompt is too long", str(ctx.exception))
+        self.assertNotIn("ANTHROPIC_API_KEY", str(ctx.exception))
+
+    def test_billing_error_stops_the_run_and_mentions_billing(self):
+        client = AnthropicClient(settings(), transport=lambda *a: (402, self.error_body("billing_error")))
+        with self.assertRaises(LLMConfigError) as ctx:
+            client.complete(REQUEST)
+        self.assertIn("billing", str(ctx.exception))
+        self.assertNotIn("ANTHROPIC_API_KEY", str(ctx.exception))
+
+    def test_408_and_529_are_unavailable(self):
         for status in (408, 529):
             client = AnthropicClient(settings(), transport=lambda *a, _s=status: (_s, b"{}"))
             with self.assertRaises(LLMUnavailableError):
                 client.complete(REQUEST)
-        client = AnthropicClient(settings(), transport=lambda *a: (413, b"{}"))
-        with self.assertRaises(LLMError) as ctx:
-            client.complete(REQUEST)
-        self.assertNotIsInstance(ctx.exception, (LLMUnavailableError, LLMConfigError))
 
-    def test_error_detail_that_echoes_the_key_is_dropped(self):
-        body = json.dumps({"error": {"type": "authentication_error", "message": f"bad {SECRET}"}}).encode()
-        client = AnthropicClient(settings(), transport=lambda *a: (401, body))
-        with self.assertRaises(LLMConfigError) as ctx:
-            client.complete(REQUEST)
-        self.assertNotIn(SECRET, str(ctx.exception))
+    def test_error_detail_that_echoes_the_key_is_redacted_even_when_long(self):
+        for padding in (0, 150, 160, 190, 199):
+            message = "x" * padding + f" bad {SECRET} tail"
+            body = self.error_body("authentication_error", message)
+            client = AnthropicClient(settings(), transport=lambda *a, _b=body: (401, _b))
+            with self.assertRaises(LLMConfigError) as ctx:
+                client.complete(REQUEST)
+            self.assertNotIn(SECRET, str(ctx.exception))
+            self.assertNotIn(SECRET[:12], str(ctx.exception))
 
     def test_timeout_and_network_errors_raise_unavailable(self):
         errors = (TimeoutError("slow"), urllib.error.URLError("down"), http.client.IncompleteRead(b"x"),

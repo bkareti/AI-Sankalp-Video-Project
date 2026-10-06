@@ -32,6 +32,7 @@ ANTHROPIC_VERSION = "2023-06-01"
 DOC_HINT = "see docs/ai-architecture.md"
 RETRYABLE_STATUSES = frozenset({408, 429})
 ERROR_DETAIL_CHARS = 200
+REJECTED_ERROR_TYPES = {401: "authentication_error", 403: "permission_error", 404: "not_found_error"}
 
 # transport(url, headers, body, timeout_s) -> (http_status, response_body_bytes)
 Transport = Callable[[str, Mapping[str, str], bytes, float], tuple[int, bytes]]
@@ -81,6 +82,19 @@ class LLMClient(Protocol):
     def complete(self, request: LLMRequest) -> LLMResponse: ...
 
 
+def _dotenv_value(raw: str) -> str:
+    """A quoted value ends at its closing quote; otherwise whitespace + `#` starts a comment."""
+    value = raw.strip()
+    if value[:1] in ("'", '"') and value.count(value[0]) >= 2:
+        return value[1:value.index(value[0], 1)]
+    if value.startswith("#"):
+        return ""
+    for index, char in enumerate(value):
+        if char == "#" and value[index - 1].isspace():
+            return value[:index].rstrip()
+    return value
+
+
 def parse_dotenv(text: str) -> dict[str, str]:
     """Parse KEY=VALUE lines. Supports comments, an `export ` prefix and quotes."""
     values: dict[str, str] = {}
@@ -90,12 +104,7 @@ def parse_dotenv(text: str) -> dict[str, str]:
             continue
         line = line.removeprefix("export ")
         key, _, value = line.partition("=")
-        value = value.strip()
-        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
-            value = value[1:-1]
-        elif " #" in value:
-            value = value.split(" #", 1)[0].rstrip()
-        values[key.strip()] = value
+        values[key.strip()] = _dotenv_value(value)
     return values
 
 
@@ -152,13 +161,13 @@ def _urllib_transport(url: str, headers: Mapping[str, str], body: bytes, timeout
         return exc.code, exc.read()
 
 
-def _error_detail(raw: bytes) -> str:
-    """The API's own error type/message, trimmed. Never raises."""
+def _error_info(raw: bytes) -> tuple[str, str]:
+    """The API's own error (type, message). Never raises."""
     try:
         error = json.loads(raw)["error"]
-        return f" ({error['type']}: {error['message']})"[:ERROR_DETAIL_CHARS]
+        return str(error["type"]), str(error["message"])
     except (ValueError, KeyError, TypeError):
-        return ""
+        return "", ""
 
 
 class AnthropicClient:
@@ -197,15 +206,27 @@ class AnthropicClient:
             raise LLMError(f"Anthropic returned an unreadable response ({type(exc).__name__}).") from None
 
     def _raise_for_status(self, status: int, raw: bytes) -> None:
-        detail = _error_detail(raw)
-        if self._settings.api_key in detail:
-            detail = ""
+        """Classify by the API's error type, falling back to the status code.
+
+        Config and billing errors affect every call, so a batch must stop.
+        invalid_request_error (for example a prompt that is too long) affects
+        only that job and is a plain `LLMError`.
+        """
+        error_type, message = _error_info(raw)
+        detail = f"{error_type}: {message}".replace(self._settings.api_key or "\0", "[redacted]")
+        detail = f" ({detail[:ERROR_DETAIL_CHARS]})" if error_type else ""
+        error_type = error_type or REJECTED_ERROR_TYPES.get(status, "")
         if status in RETRYABLE_STATUSES or status >= 500:
             raise LLMUnavailableError(f"Anthropic returned HTTP {status}{detail}.")
-        if status in (400, 401, 403, 404):
+        if error_type in REJECTED_ERROR_TYPES.values():
             raise LLMConfigError(
                 f"Anthropic rejected the request with HTTP {status}{detail}. Check {ENV_ANTHROPIC_KEY} "
                 f"and {ENV_MODEL}; {DOC_HINT}."
+            )
+        if status == 402 or error_type == "billing_error":
+            raise LLMConfigError(
+                f"Anthropic reports a billing problem (HTTP {status}{detail}). Check the account's billing "
+                f"and spend limits; every call will fail until it is fixed ({DOC_HINT})."
             )
         raise LLMError(f"Anthropic returned HTTP {status}{detail}.")
 

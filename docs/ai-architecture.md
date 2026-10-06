@@ -146,12 +146,19 @@ policy (#13, #19) so it lives in one place.
 - LLM outage, network error, timeout, 408, 429 or 5xx: callers get
   `LLMUnavailableError`. #13 and #19 record the failure and skip or fail that
   one job; they do not hang.
-- A rejected key or model (HTTP 400, 401, 403, 404): callers get
-  `LLMConfigError` naming `ANTHROPIC_API_KEY` and `AI_SANKALP_LLM_MODEL` with the
-  API's error type. Batch callers must stop the whole run, not skip one job.
+- A rejected key or model (`authentication_error`, `permission_error`,
+  `not_found_error`; HTTP 401, 403, 404): callers get `LLMConfigError` naming
+  `ANTHROPIC_API_KEY` and `AI_SANKALP_LLM_MODEL` with the API's error type. A
+  billing problem (`billing_error`, HTTP 402) is also an `LLMConfigError` that
+  mentions billing and spend limits. Every call will fail, so a batch must stop
+  the whole run.
+- A bad single request (`invalid_request_error`, HTTP 400, or 413, for example a
+  prompt that is too long): a plain `LLMError` carrying the API's message. Only
+  that job fails; a batch records it and continues.
 - A response cut off at `max_tokens`: `LLMResponse.stop_reason` is
   `"max_tokens"`. Callers must check it before parsing the text.
-  Fallbacks: hand-edit the package JSON, or start from the tracked examples.
+- Fallbacks when the LLM cannot be used: hand-edit the package JSON, or start
+  from the tracked examples.
 - TTS outage: cached audio is reused. Otherwise render with `--no-voiceover`,
   generate captions from the narration, or switch between gTTS and Edge TTS.
 - Tests never use the network (`FakeLLMClient`, injected transport).
@@ -177,9 +184,9 @@ policy (#13, #19) so it lives in one place.
 - `load_settings(env=None, dotenv_path=None)` and `build_client(settings)`.
 - `FakeLLMClient(responses)` for offline tests; it records requests.
 - Errors, all subclasses of `LLMError`: `LLMConfigError` (not configured, or
-  the key or model was rejected; retrying will not help) and
+  the key or model was rejected, or billing failed; retrying will not help) and
   `LLMUnavailableError` (network error, 408, 429, 5xx; retry later). Any other
-  failure is a plain `LLMError`.
+  failure, including a bad single request, is a plain `LLMError`.
 
 Callers get a client with `build_client(load_settings(dotenv_path=DEFAULT_DOTENV_PATH))` and in
 tests use `FakeLLMClient`. The real HTTP path (Anthropic Messages API) is
