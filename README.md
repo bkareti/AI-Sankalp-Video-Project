@@ -74,6 +74,10 @@ create video to explain Array in C++
 
 `create video` requests the complete local workflow, including rendering and visual inspection. Use `prepare a video package to explain Array in C++` to stop after Markdown and JSON, or `generate a Manim scene to explain Array in C++` to create code without rendering. The reusable expansion template is in `prompts/ai_sankalp_video_request.md`.
 
+## AI architecture and API keys
+
+AI is optional. Authoring runs through the agent skill above; a small Python adapter (`ai_sankalp/llm.py`) is the integration point for future repair and batch features and is disabled by default. To enable it, create an untracked `.env` file and set your own `AI_SANKALP_LLM_PROVIDER`, `AI_SANKALP_LLM_MODEL` and `ANTHROPIC_API_KEY`. Which AI runs where, costs, secrets, and offline behavior are in [docs/ai-architecture.md](docs/ai-architecture.md).
+
 ## Run the sample
 
 Generate the scene and normalized config without rendering:
