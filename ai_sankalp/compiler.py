@@ -41,8 +41,12 @@ class CompiledLesson:
 
 
 def canonical_sha256(value: Any) -> str:
-    """SHA-256 of `value` as canonical JSON, so key order and whitespace do not matter."""
-    text = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    """SHA-256 of `value` as canonical JSON, so key order and whitespace do not matter.
+
+    `default=str` covers values YAML produces that JSON cannot hold (an unquoted
+    date becomes `datetime.date`); they hash as their ISO text.
+    """
+    text = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, default=str)
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 

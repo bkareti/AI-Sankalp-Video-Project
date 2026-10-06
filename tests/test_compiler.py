@@ -1,4 +1,5 @@
 import dataclasses
+import datetime
 import hashlib
 import json
 import py_compile
@@ -239,6 +240,13 @@ class DeterminismTests(unittest.TestCase):
         self.assertEqual(canonical_sha256({"a": 1, "b": [1, 2]}), canonical_sha256({"b": [1, 2], "a": 1}))
         self.assertNotEqual(canonical_sha256({"a": 1}), canonical_sha256({"a": 2}))
 
+    def test_canonical_hash_accepts_yaml_dates_and_matches_their_text(self):
+        # YAML reads an unquoted 2026-10-06 as a date; JSON cannot hold one.
+        self.assertEqual(
+            canonical_sha256({"reviewed_on": "2026-10-06"}),
+            canonical_sha256({"reviewed_on": datetime.date(2026, 10, 6)}),
+        )
+
     def test_silent_preview_is_recorded_and_changes_the_key(self):
         _root, loud = self.compile_in_new_root(LOOPS)
         directory = tempfile.TemporaryDirectory()
@@ -321,6 +329,14 @@ class YamlPackageTests(unittest.TestCase):
         self.assertEqual("standard", from_yaml.metadata["template"]["name"])
         self.assertEqual(self.package["slug"], from_yaml.metadata["slug"])
         self.assertEqual(from_json.metadata["source"]["sha256"], from_yaml.metadata["source"]["sha256"])
+
+    def test_yaml_package_with_an_unquoted_date_compiles(self):
+        data = dict(self.package, reviewed_on=datetime.date(2026, 10, 6))
+        self.yaml_path.write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True), encoding="utf-8")
+        self.assertIn("reviewed_on: 2026-10-06", self.yaml_path.read_text(encoding="utf-8"))
+        compiled = PackageCompiler(self.root).compile(self.yaml_path)
+        self.assertEqual("standard", compiled.metadata["template"]["name"])
+        self.assertEqual(64, len(compiled.metadata["source"]["sha256"]))
 
     def test_yaml_that_is_not_an_object_is_rejected(self):
         self.yaml_path.write_text("- just\n- a list\n", encoding="utf-8")

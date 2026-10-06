@@ -30,7 +30,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     generate.add_argument(
         "--config", type=Path, required=True,
-        help="Reduced lesson config (JSON/YAML) or rich lesson_package.json (auto-detected)",
+        help="Reduced lesson config or rich lesson package, as JSON or YAML (auto-detected)",
     )
     generate.add_argument("--render", action="store_true", help="Render the generated scene to MP4")
     generate.add_argument(
