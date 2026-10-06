@@ -6,6 +6,7 @@ import json
 import sys
 from pathlib import Path
 
+from ai_sankalp.compiler import PackageCompiler
 from ai_sankalp.config_io import load_config, load_lesson_input
 from ai_sankalp.generator import LessonGenerator
 from ai_sankalp.history import HistoryLog
@@ -115,13 +116,22 @@ def generate_and_maybe_render(
     package_path: Path | None = None,
     burn_captions: bool = False,
 ) -> int:
-    generator = LessonGenerator(PROJECT_ROOT)
-    generated = generator.generate(lesson, package_path=package_path)
+    metadata_path = None
+    if package_path is not None:
+        # A rich package is the source of truth: compile it (validate, convert,
+        # pick the template, check the scene, write metadata) instead of
+        # generating from the already-converted config.
+        compiled = PackageCompiler(PROJECT_ROOT).compile(package_path, voiceover_enabled=lesson.voiceover.enabled)
+        lesson, generated, metadata_path = compiled.lesson, compiled.generated, compiled.metadata_path
+    else:
+        generated = LessonGenerator(PROJECT_ROOT).generate(lesson)
     print(f"Scene:  {generated.scene_path}")
     print(f"Config: {generated.config_path}")
     print(f"Class:  {generated.scene_class}")
     if generated.package_path:
         print(f"Package: {generated.package_path}")
+    if metadata_path:
+        print(f"Metadata: {metadata_path}")
     if render:
         result = ManimRenderer(PROJECT_ROOT).render(generated, lesson, output_dir, quality, burn_captions)
         print(f"Video:  {result.video_path}")

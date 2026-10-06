@@ -88,6 +88,7 @@ def run_qa(
     inputs = {
         "package": display_path(package_path, root) if package_path else None,
         "scene": display_path(root / "generated" / "scenes" / f"{slug}.py", root),
+        "compile_metadata": display_path(root / "generated" / "scenes" / f"{slug}.compile.json", root),
         "video": display_path(ctx.video, root),
         "captions_srt": display_path(srt_path, root),
         "captions_vtt": display_path(srt_path.with_suffix(".vtt"), root),

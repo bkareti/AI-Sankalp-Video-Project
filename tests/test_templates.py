@@ -5,7 +5,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from ai_sankalp.generator import LessonGenerator, check_template_prerequisites
+from ai_sankalp.generator import (
+    LessonGenerator, SceneSyntaxError, check_scene_syntax, check_template_prerequisites,
+)
 from ai_sankalp.models import LessonConfig, LessonValidationError
 from ai_sankalp.package import PackageValidationError
 
@@ -144,6 +146,49 @@ class GeneratedSceneCompileTests(unittest.TestCase):
             source = result.scene_path.read_text(encoding="utf-8")
             self.assertIn(f"LESSON_PACKAGE_PATH = Path({str(outside.resolve())!r})", source)
             py_compile.compile(str(result.scene_path), doraise=True)
+
+
+class SceneSyntaxGateTests(unittest.TestCase):
+    def test_check_scene_syntax_accepts_valid_source(self):
+        check_scene_syntax("class A:\n    pass\n", "a.py")
+
+    def test_check_scene_syntax_names_the_file_and_line(self):
+        with self.assertRaises(SceneSyntaxError) as ctx:
+            check_scene_syntax("x = 1\ndef broken(:\n", "generated/scenes/a.py")
+        message = str(ctx.exception)
+        self.assertIn("generated/scenes/a.py has a syntax error at line 2", message)
+        self.assertIn("templates/generated_scene.py.tmpl", message)
+
+    def test_null_bytes_are_reported_not_raised_as_value_errors(self):
+        with self.assertRaises(SceneSyntaxError):
+            check_scene_syntax("x = 1\0\n", "a.py")
+
+    def test_scene_syntax_error_is_a_lesson_validation_error(self):
+        self.assertTrue(issubclass(SceneSyntaxError, LessonValidationError))
+
+    def test_damaged_template_writes_no_config_or_scene(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = make_root(directory)
+            copy_package(root)
+            template = root / "templates" / "generated_scene.py.tmpl"
+            template.write_text(template.read_text(encoding="utf-8") + "\nclass Broken(:\n", encoding="utf-8")
+            with self.assertRaises(SceneSyntaxError):
+                LessonGenerator(root).generate(lesson())
+            self.assertFalse((root / "generated" / "configs").exists())
+            self.assertFalse((root / "generated" / "scenes").exists())
+            self.assertFalse((root / "generated" / "history.jsonl").exists())
+
+    def test_a_failed_regeneration_keeps_the_previous_scene(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = make_root(directory)
+            copy_package(root)
+            result = LessonGenerator(root).generate(lesson())
+            before = result.scene_path.read_text(encoding="utf-8")
+            template = root / "templates" / "generated_scene.py.tmpl"
+            template.write_text("class Broken(:\n", encoding="utf-8")
+            with self.assertRaises(SceneSyntaxError):
+                LessonGenerator(root).generate(lesson())
+            self.assertEqual(before, result.scene_path.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

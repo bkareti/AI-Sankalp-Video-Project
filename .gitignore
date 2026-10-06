@@ -12,6 +12,7 @@ generated/audio_edge/*
 generated/videos/*
 !generated/videos/.gitkeep
 generated/scenes/*.py
+generated/scenes/*.json
 !generated/scenes/.gitkeep
 generated/configs/*.json
 !generated/configs/.gitkeep
