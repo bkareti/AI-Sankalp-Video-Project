@@ -43,7 +43,7 @@ class LLMError(RuntimeError):
 
 
 class LLMConfigError(LLMError):
-    """The provider, model or key is missing or rejected. Retrying will not help."""
+    """The provider, model or key is missing or rejected, or billing failed. Retrying will not help."""
 
 
 class LLMUnavailableError(LLMError):

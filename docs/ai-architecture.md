@@ -195,7 +195,9 @@ live API in CI.
 
 ## Out of scope and follow-ups
 
-OpenAI client, retry/backoff/budget caps (#13, #19), Python Planner (#15), an
+OpenAI client, retry/backoff/budget caps (#13, #19; a batch should also stop after N
+consecutive identical failures, because an organization spend-limit 400 and a
+tier spend-cap 429 are not reported as billing errors), Python Planner (#15), an
 `app.py check` line for LLM status, cost logging to `history.jsonl` (#19),
 prompt caching and Batch API support in the adapter, paid TTS providers.
 
