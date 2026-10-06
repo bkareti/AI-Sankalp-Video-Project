@@ -20,3 +20,8 @@ generated/packages/*
 generated/history.jsonl
 generated/qa/*
 !generated/qa/.gitkeep
+
+# local secrets
+.env
+.env.*
+!.env.example
