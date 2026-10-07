@@ -8,7 +8,7 @@ The video template includes an intro, lesson title, step-by-step explanation car
 
 ```text
 app.py                         CLI and desktop-app entry point
-ai_sankalp/                    Models, generator, renderer, UI, Manim runtime
+ai_sankalp/                    Models, package compiler, generator, renderer, UI, Manim runtime
 ai_sankalp/brand.py            Brand kit: palette, fonts, logo, footer, safe areas
 ai_sankalp/primitives/         Reusable visuals (specs, layout helpers, brand frame, diagrams)
 templates/generated_scene.py.tmpl
@@ -23,7 +23,7 @@ docs/                          Brand checklist, template and primitive guide, re
 scenes/primitive_smoke.py      One smoke render per primitive fixture (examples/primitives/)
 generated/
   configs/                     Normalized lesson configs
-  scenes/                      Small generated Manim entry points
+  scenes/                      Small generated Manim entry points (+ <slug>.compile.json compiler metadata)
   audio/                       gTTS voiceover cache
   videos/                      Final MP4 files with .srt/.vtt captions
   qa/                          QA reports (qa_report.json per lesson)
@@ -284,12 +284,41 @@ Tracked packages:
 - `examples/arrays_in_cpp/lesson_package.json` (flagship, `futuristic_array`)
 - `examples/python_for_loops/lesson_package.json` (`standard`)
 
-Pass a package straight to `generate`; it is detected, validated, and converted:
+Pass a package straight to `generate`; it is detected and compiled
+(`ai_sankalp/compiler.py`):
 
 ```bash
 python app.py generate --config examples/arrays_in_cpp/lesson_package.json
 python app.py generate --config examples/python_for_loops/lesson_package.json --render --no-voiceover
 ```
+
+Compiling a package:
+
+1. validates it (schema and cross-references, with field paths in errors);
+2. converts `generator_compatibility` to the reduced config in
+   `generated/configs/<slug>.json`;
+3. picks the visual template: `generator_compatibility.visual_template`, then
+   the top-level `visual_template`, then `standard`;
+4. writes the scene entry point `generated/scenes/<slug>.py`, after checking
+   that it compiles (the same check `py_compile` does). A syntax error stops
+   `generate` before any file changes, and `--render` re-checks the scene
+   before it starts Manim;
+5. writes `generated/scenes/<slug>.compile.json` beside the scene.
+
+The metadata records the source package hash, the template and which field
+chose it, every scene's primitives (explicit `visuals` or the default for the
+scene type), the narration segments captions are built from, an estimated
+caption length, hashes of the config and scene, and any warnings. It holds no
+timestamps, so compiling an unchanged package gives byte-identical config,
+scene, and metadata; `generated/history.jsonl` is the timestamped log. Paths in
+the metadata are relative to the project, so the outputs are the same on any
+machine for a package inside the project. A package outside the project is
+recorded, and pinned in the scene, by its absolute path. The `compile_key` hash
+changes whenever the package, the scene template, the template routing, or the
+compile options (such as `--no-voiceover`) change. Packages may be JSON or YAML.
+
+Reduced configs (`--config examples/python_for_loops.json`, `sample`, the
+form, `interactive`) generate exactly as before and write no metadata.
 
 When you pass a package path with `--config`, the generated scene is pinned to
 that file. Otherwise (a reduced config with `futuristic_array`), the scene

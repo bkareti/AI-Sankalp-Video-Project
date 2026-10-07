@@ -24,7 +24,7 @@ Compiler, QA, rendering, captions and TTS selection stay deterministic code.
 | Python Planner | `ai_sankalp/llm.py` | Deferred to #15 | Same | Yes | Same as above |
 | Repair of a failed package or scene | `ai_sankalp/llm.py` | #13, on a failed validation or QA check | Haiku class for small schema/syntax fixes, Sonnet otherwise | Yes | Person accepts the saved diff |
 | Batch authoring | `ai_sankalp/llm.py` | #19, sequential first | Sonnet class | Yes | Per-video review, SME approval |
-| Compiler (package to config to scene) | Python, `generator.py` | `app.py generate` | none | No | none |
+| Compiler (package to config to scene) | Python, `compiler.py` and `generator.py` | `app.py generate --config <package>` | none | No | none |
 | QA gates | Python, `ai_sankalp/qa` | `app.py qa` | none | No | SME approval is a gate |
 | Captions, rendering | Python / Manim | `app.py generate --render` | none | No | Frame inspection |
 | TTS | gTTS or Edge TTS via manim-voiceover | Render time | none (speech service) | Yes at first render, cached after | Listen to the render |

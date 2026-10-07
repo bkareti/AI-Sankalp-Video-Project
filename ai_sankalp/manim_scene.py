@@ -252,7 +252,7 @@ class ConfigDrivenLesson(VoiceoverScene):
         thanks.set_color_by_gradient(brand.CYAN, brand.ACCENT)
         brand_name = text("AI SANKALP", self.fonts, 27, color=brand.MINT, bold=True)
         line = Line(LEFT, RIGHT, color=brand.CYAN, stroke_width=4).set_width(2.1)
-        group = VGroup(thanks, line, brand_name).arrange(DOWN, buff=0.3)
+        VGroup(thanks, line, brand_name).arrange(DOWN, buff=0.3)  # positions the three mobjects
 
         def animate() -> None:
             self.play(FadeIn(thanks, shift=UP * 0.15), GrowFromCenter(line), run_time=0.75)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 from .config_io import save_config
 from .history import HistoryLog
@@ -11,12 +11,45 @@ from .package import display_path, ensure_valid_package, load_package, resolve_p
 from .template_registry import TEMPLATES
 
 
+COMPILE_METADATA_SUFFIX = ".compile.json"
+
+
+class SceneSyntaxError(LessonValidationError):
+    """Raised when a generated scene is not valid Python, so it cannot render."""
+
+
 @dataclass
 class GeneratedLesson:
     config_path: Path
     scene_path: Path
     scene_class: str
     package_path: Optional[Path] = None
+
+
+def compile_metadata_path(scene_path: Path) -> Path:
+    """Where the package compiler stores its metadata: beside the scene it describes."""
+    return Path(scene_path).with_suffix(COMPILE_METADATA_SUFFIX)
+
+
+def check_scene_syntax(source: Union[str, bytes], name: str) -> None:
+    """Fail with a readable message when `source` does not compile.
+
+    This is what `py_compile` does, in memory, so checking never writes a
+    `.pyc` file or leaves a half-written scene behind. Like `py_compile`, it
+    compiles bytes, so a UTF-8 byte-order mark is accepted and a file that is
+    not valid UTF-8 is reported as a syntax error rather than a decode crash.
+    """
+    data = source.encode("utf-8") if isinstance(source, str) else source
+    try:
+        compile(data, name, "exec")
+    except (SyntaxError, ValueError) as exc:
+        line = getattr(exc, "lineno", None)
+        where = f" at line {line}" if line else ""
+        detail = getattr(exc, "msg", None) or str(exc)
+        raise SceneSyntaxError(
+            f"generated scene {name} has a syntax error{where}: {detail}. "
+            "Restore templates/generated_scene.py.tmpl and generate again."
+        ) from exc
 
 
 def check_template_prerequisites(
@@ -82,7 +115,6 @@ class LessonGenerator:
 
         config_path = self.generated / "configs" / f"{lesson.slug}.json"
         scene_path = self.generated / "scenes" / f"{lesson.slug}.py"
-        save_config(lesson, config_path)
 
         spec = TEMPLATES[lesson.visual_template]
         template = self.template_path.read_text(encoding="utf-8")
@@ -94,8 +126,15 @@ class LessonGenerator:
             .replace("__SCENE_BASE__", spec.scene_base)
             .replace("__PACKAGE_PATH__", _package_path_literal(pinned_package, self.root))
         )
+        # A scene that cannot compile fails here, before any file changes.
+        check_scene_syntax(scene_source, display_path(scene_path, self.root))
+
+        save_config(lesson, config_path)
         scene_path.parent.mkdir(parents=True, exist_ok=True)
         scene_path.write_text(scene_source, encoding="utf-8")
+        # Metadata from an earlier package compile describes files that were just
+        # replaced. The package compiler writes a fresh one after generating.
+        compile_metadata_path(scene_path).unlink(missing_ok=True)
         self.history.add(
             "scene_generated",
             topic=lesson.topic,

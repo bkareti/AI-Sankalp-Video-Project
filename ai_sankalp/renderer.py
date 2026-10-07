@@ -14,7 +14,7 @@ from .captions import (
     SOURCE_ESTIMATED, SOURCE_RENDER, CaptionFiles, Cue, estimate_cues_from_lesson, estimate_cues_from_package,
     export_captions, find_render_srt, parse_srt,
 )
-from .generator import GeneratedLesson
+from .generator import GeneratedLesson, check_scene_syntax
 from .history import HistoryLog
 from .models import LessonConfig
 from .package import display_path, load_package
@@ -107,6 +107,15 @@ class ManimRenderer:
         self.generated = self.root / "generated"
         self.history = HistoryLog(self.generated / "history.jsonl")
 
+    def _check_scene(self, scene_path: Path) -> None:
+        """Refuse to start Manim on a scene that is missing or does not compile."""
+        name = display_path(scene_path, self.root)
+        try:
+            source = Path(scene_path).read_bytes()
+        except OSError as exc:
+            raise RenderError(f"scene file cannot be read: {name} ({exc}). Run generate first.") from exc
+        check_scene_syntax(source, name)
+
     def render(
         self,
         generated: GeneratedLesson,
@@ -117,6 +126,7 @@ class ManimRenderer:
     ) -> RenderResult:
         if quality not in self.QUALITY:
             raise ValueError(f"quality must be one of: {', '.join(self.QUALITY)}")
+        self._check_scene(generated.scene_path)
         python = _python_with_manim(self.root)
         if shutil.which("ffmpeg") is None:
             raise DependencyError("ffmpeg is missing. On macOS, install it with: brew install ffmpeg")

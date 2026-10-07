@@ -9,8 +9,9 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
+from .config_io import read_data
 from .models import LessonConfig, LessonValidationError
 from .schema_validation import SchemaIssue, load_schema, validate
 
@@ -57,12 +58,15 @@ def load_package(path: Path) -> Dict[str, Any]:
     path = Path(path)
     if not path.exists():
         raise LessonValidationError(f"lesson package not found: {display_path(path)}")
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
-        raise LessonValidationError(f"could not read lesson package {display_path(path)}: {exc}") from exc
+    if path.suffix.lower() in {".yaml", ".yml"}:
+        data = read_data(path)  # reports its own read errors; YAML packages worked before the compiler
+    else:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            raise LessonValidationError(f"could not read lesson package {display_path(path)}: {exc}") from exc
     if not isinstance(data, dict):
-        raise LessonValidationError(f"lesson package {display_path(path)} must be a JSON object")
+        raise LessonValidationError(f"lesson package {display_path(path)} must be an object")
     return data
 
 
@@ -211,6 +215,21 @@ def ensure_valid_package(package: Any, source: str = "lesson package") -> None:
     )
 
 
+def select_visual_template(package: Dict[str, Any]) -> Tuple[str, str]:
+    """The template a package asks for, and the field that chose it.
+
+    `generator_compatibility.visual_template` wins, then the top-level
+    `visual_template`, then `standard`. The reduced config and the compiler
+    metadata both read this, so they cannot disagree.
+    """
+    compatibility = package["generator_compatibility"]
+    if compatibility.get("visual_template"):
+        return compatibility["visual_template"], "generator_compatibility.visual_template"
+    if package.get("visual_template"):
+        return package["visual_template"], "visual_template"
+    return "standard", "default"
+
+
 def package_to_config_dict(package: Dict[str, Any]) -> Dict[str, Any]:
     """Build the reduced render config from a package with a fixed key order."""
     compatibility = package["generator_compatibility"]
@@ -223,9 +242,7 @@ def package_to_config_dict(package: Dict[str, Any]) -> Dict[str, Any]:
         "summary": compatibility["summary"],
         "output_video_name": compatibility["output_video_name"],
         "voiceover": compatibility["voiceover"],
-        "visual_template": (
-            compatibility.get("visual_template") or package.get("visual_template") or "standard"
-        ),
+        "visual_template": select_visual_template(package)[0],
     }
 
 

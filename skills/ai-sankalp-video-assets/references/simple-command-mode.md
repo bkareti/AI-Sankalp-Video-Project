@@ -70,8 +70,8 @@ When the current repository contains `app.py` and the `ai_sankalp` package:
 
 1. Save human-readable planning to `generated/packages/<slug>/lesson_package.md`.
 2. Save the full contract JSON to `generated/packages/<slug>/lesson_package.json`.
-3. Map `generator_compatibility` into `generated/configs/<slug>.json`, adding the top-level `topic`, `title`, and `language` required by the app.
-4. Generate and render with the existing application. Use an offline low-quality render for layout diagnosis when helpful; use the user's requested final quality or 1080p high quality by default.
+3. Compile the package with `python app.py generate --config generated/packages/<slug>/lesson_package.json`. This writes `generated/configs/<slug>.json` from `generator_compatibility`, the scene, and `generated/scenes/<slug>.compile.json` (template choice, primitives per scene, narration), and stops on a package or scene error. Do not map the config by hand.
+4. Render with the existing application (add `--render`). Use an offline low-quality render for layout diagnosis when helpful; use the user's requested final quality or 1080p high quality by default.
 5. Keep voiceover enabled for the final render unless the user requests silence. If online TTS fails, retain the package and successful visual render, report the exact limitation, and do not claim the silent preview is the narrated final.
 6. Inspect representative intro, explanation, code, practice, summary, and outro frames before reporting completion.
 

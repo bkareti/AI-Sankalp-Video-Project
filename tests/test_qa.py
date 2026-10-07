@@ -275,6 +275,7 @@ class ReportTests(unittest.TestCase):
             self.assertEqual("2026-10-01T10:00:00+00:00", data["created_at"])
             self.assertEqual("examples/arrays_in_cpp/lesson_package.json", data["inputs"]["package"])
             self.assertEqual("generated/videos/arrays_in_cpp.mp4", data["inputs"]["video"])
+            self.assertEqual("generated/scenes/arrays_in_cpp.compile.json", data["inputs"]["compile_metadata"])
             for check in data["checks"]:
                 self.assertEqual({"id", "title", "status", "message", "fix", "details"}, set(check))
                 if check["status"] != PASS:

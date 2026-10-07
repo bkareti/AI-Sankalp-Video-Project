@@ -8,7 +8,7 @@ from unittest import mock
 from ai_sankalp import renderer
 from ai_sankalp.captions import Cue, format_srt
 from ai_sankalp.config_io import load_config
-from ai_sankalp.generator import GeneratedLesson
+from ai_sankalp.generator import GeneratedLesson, SceneSyntaxError
 from ai_sankalp.renderer import ManimRenderer, RenderError
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,6 +40,7 @@ class RendererCaptionTests(unittest.TestCase):
             output.write_bytes(b"captioned")
             return output
 
+        (root / "s.py").write_text("x = 1\n", encoding="utf-8")
         generated = GeneratedLesson(root / "s.py", root / "s.py", lesson.scene_class)
         with mock.patch.object(renderer, "_python_with_manim", return_value=Path("python")), \
                 mock.patch.object(renderer.shutil, "which", return_value="/usr/bin/ffmpeg"), \
@@ -80,6 +81,54 @@ class RendererCaptionTests(unittest.TestCase):
         events = [record["event"] for record in history]
         self.assertEqual(["render_started", "render_succeeded", "caption_burn_failed"], events)
         self.assertIn("video", history[-1])
+
+
+class RendererSceneCheckTests(unittest.TestCase):
+    """A scene that cannot compile never reaches Manim."""
+
+    def render_scene(self, source):
+        lesson = load_config(ROOT / "examples" / "python_for_loops.json")
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = Path(directory.name)
+        scene = root / "scene.py"
+        if isinstance(source, bytes):
+            scene.write_bytes(source)
+        elif source is not None:
+            scene.write_text(source, encoding="utf-8")
+        generated = GeneratedLesson(scene, scene, lesson.scene_class)
+        with mock.patch.object(renderer, "_python_with_manim", return_value=Path("python")), \
+                mock.patch.object(renderer.shutil, "which", return_value="/usr/bin/ffmpeg"), \
+                mock.patch.object(
+                    renderer.subprocess, "run",
+                    return_value=subprocess.CompletedProcess([], 1, stdout="", stderr="stubbed manim"),
+                ) as run:
+            try:
+                ManimRenderer(root).render(generated, lesson, root / "out", "low")
+            finally:
+                self.run_mock = run
+                self.history = root / "generated" / "history.jsonl"
+
+    def test_syntax_error_stops_before_manim_and_history(self):
+        with self.assertRaisesRegex(SceneSyntaxError, r"scene\.py has a syntax error at line 2"):
+            self.render_scene("class A:\n    def broken(:\n        pass\n")
+        self.run_mock.assert_not_called()
+        self.assertFalse(self.history.exists())
+
+    def test_scene_that_is_not_utf8_is_a_syntax_error_not_a_decode_crash(self):
+        with self.assertRaisesRegex(SceneSyntaxError, "scene.py has a syntax error"):
+            self.render_scene(b"x = '\xe9'\n")
+        self.run_mock.assert_not_called()
+
+    def test_scene_with_a_byte_order_mark_passes_the_gate_and_reaches_manim(self):
+        with self.assertRaisesRegex(RenderError, "stubbed manim"):
+            self.render_scene(b"\xef\xbb\xbfx = 1\n")
+        self.run_mock.assert_called_once()
+
+    def test_missing_scene_is_a_render_error_not_a_manim_run(self):
+        with self.assertRaisesRegex(RenderError, "scene file cannot be read"):
+            self.render_scene(None)
+        self.run_mock.assert_not_called()
 
 
 if __name__ == "__main__":
