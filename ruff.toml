@@ -1,0 +1,8 @@
+# Lint policy: ruff's correctness rules only (pycodestyle E4/E7/E9 and pyflakes F).
+# Style families (import order, pyupgrade, simplify) are not enforced.
+[lint]
+select = ["E4", "E7", "E9", "F"]
+
+[lint.per-file-ignores]
+# Hand-authored Manim reference scenes use `from manim import *`, as Manim's own docs do.
+"scenes/*.py" = ["F403", "F405", "E402"]
