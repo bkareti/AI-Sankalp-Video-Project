@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 from manim import DOWN, LEFT, RIGHT, UP, Arrow, Create, FadeIn, Flash, GrowArrow, VGroup, there_and_back
 
 from .. import brand
-from .base import BuiltVisual, PrimitiveContext, accent, play, with_header
+from .base import BuiltVisual, PrimitiveContext, play, with_header
 from .layout import code_block, fit, glass_card, pygments_language
 
 Spec = Dict[str, Any]

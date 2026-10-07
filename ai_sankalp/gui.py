@@ -133,7 +133,9 @@ class LessonApp:
                 message = f"Scene saved to:\n{generated.scene_path}\n\nConfig saved to:\n{generated.config_path}"
             self.window.after(0, lambda: self._done(message, None))
         except Exception as exc:
-            self.window.after(0, lambda: self._done("", str(exc)))
+            # Python deletes `exc` when this block ends, before Tk runs the callback.
+            error = str(exc)
+            self.window.after(0, lambda: self._done("", error))
 
     def _done(self, message: str, error: str | None) -> None:
         self.generate_button.configure(state="normal")
